@@ -25,4 +25,6 @@ int argstr(int n, char *buf, int max);
 void syscall(void);
 int argfd(int n, int *pfd, struct file **pf);
 int argstruct(int n,void* st,int len);
+int argstrvec(int n,char** argv,int max);
+int freevec(char** argv,int len);
 #endif

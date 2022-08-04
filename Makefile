@@ -50,6 +50,7 @@ OBJS += \
 	$K/proc.o \
 	$K/vma.o\
 	$K/uarg.o \
+	$K/exec.o \
 	$K/sysfile.o \
 	$K/sysproc.o \
 	$K/syssig.o \

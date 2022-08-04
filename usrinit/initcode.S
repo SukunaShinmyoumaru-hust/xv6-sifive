@@ -23,6 +23,7 @@ start:
 	
 	la a0, init
 	la a1, argv
+	la a2, 0
 	li a7, SYS_execve
 	ecall
 
@@ -41,5 +42,6 @@ testread:
 
 .p2align 2
 argv:
+	.dword init
 	.dword 0
 	

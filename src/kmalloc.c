@@ -225,7 +225,7 @@ void kfree(void *addr) {
 
 	struct kmem_allocator *alloc = get_allocator(node->config.obj_size);
 
-	__debug_info("kfree alloc: %p, addr: %p\n", alloc, addr);
+	//__debug_info("kfree alloc: %p, addr: %p\n", alloc, addr);
 	// enter critical section `alloc`
 	acquire(&(alloc->lock));
 
@@ -245,7 +245,7 @@ void kfree(void *addr) {
 
 	// if kmem_node has no allocated obj 
 	if (0 == node->cnt) {
-		__debug_info("kfree drop\n");
+		//__debug_info("kfree drop\n");
 		struct kmem_node **pprev = &(alloc->list);
 		struct kmem_node *tmp = alloc->list;
 
@@ -258,7 +258,7 @@ void kfree(void *addr) {
 			panic("kfree(): linked list broken!\n");
 		}
 
-		#ifdef DEBUG 
+		#ifdef DEBUG1 
 		// display linked list of kmem_allocator 
 		for (struct kmem_node *it = alloc->list; NULL != it; it = it->next) {
 			printf("%p -> ", it);
@@ -267,8 +267,8 @@ void kfree(void *addr) {
 		#endif 
 
 		*pprev = tmp->next;
-		__debug_info("kfree alloc->list = %p\n", alloc->list);
-		__debug_info("kfree tmp = %p\n", tmp);
+		//__debug_info("kfree alloc->list = %p\n", alloc->list);
+		//__debug_info("kfree tmp = %p\n", tmp);
 
 		freepage(node);
 		alloc->npages--;

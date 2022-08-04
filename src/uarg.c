@@ -6,11 +6,9 @@
 int
 fetchaddr(uint64 addr, uint64 *ip)
 {
-  struct proc *p = myproc();
-  if(addr >= p->sz || addr+sizeof(uint64) > p->sz)
-    return -1;
+  //struct proc *p = myproc();
   // if(copyin(p->pagetable, (char *)ip, addr, sizeof(*ip)) != 0)
-  if(copyin2((char *)ip, addr, sizeof(*ip)) != 0)
+  if(either_copyin(1,(char*)ip, addr, sizeof(*ip)))
     return -1;
   return 0;
 }
@@ -20,9 +18,8 @@ fetchaddr(uint64 addr, uint64 *ip)
 int
 fetchstr(uint64 addr, char *buf, int max)
 {
-  // struct proc *p = myproc();
-  // int err = copyinstr(p->pagetable, buf, addr, max);
-  int err = either_copyin(1,buf, addr, max);
+  struct proc *p = myproc();
+  int err = copyinstr(p->pagetable, buf, addr, max);
   if(err < 0)
     return err;
   return strlen(buf);
@@ -108,6 +105,54 @@ argstruct(int n,void* st,int len){
     return -1;
   }
   return addr;
+}
+
+int
+freevec(char** argv,int len){
+  for(int i = 0; i < len && argv[i] != 0; i++){
+    printf("[freevec] argv[%d]=%p\n",i,argv[i]);
+    kfree(argv[i]);
+  }
+  return 0;
+}
+
+int
+argstrvec(int n,char** argv,int max){
+  int i = 0;
+  uint64 uarg,uargv;
+  memset(argv, 0, max*sizeof(uint64));
+  if(argaddr(n, &uargv) < 0||uargv == 0){
+    __debug_warn("[argstrvec] uargv null\n");
+    goto bad;
+  }
+  for(;;i++){
+    if(i >= max){
+      __debug_warn("[argstrvec] max is too small\n");
+      goto bad;
+    }
+    if(fetchaddr(uargv+sizeof(uint64)*i, (uint64*)&uarg) < 0){
+      __debug_warn("[argstrvec] uargv:%p\n",uargv);
+      __debug_warn("[argstrvec] fetch argv[%d] address bad\n",i);
+      goto bad;
+    }
+    if(uarg == 0){
+      argv[i] = 0;
+      break;
+    }
+    argv[i] = kmalloc(256);
+    if(argv[i] == 0){
+      __debug_warn("[argstrvec] no more space for argv[%d]\n",i);
+      goto bad;
+    }
+    if(fetchstr(uarg, argv[i], 0x20) < 0){
+      __debug_warn("[argstrvec] fetch argv[%d] string bad\n",i);
+      goto bad;
+    }
+  }
+  return i;
+bad:
+  freevec(argv,i+1);
+  return -1;
 }
 
 uint64
