@@ -1,0 +1,11 @@
+#define SYS_dup	23
+#define SYS_dup3	24
+#define SYS_openat	56
+#define SYS_read	63
+#define SYS_write	64
+#define SYS_exit	93
+#define SYS_rt_sigaction	134
+#define SYS_rt_sigreturn	139
+#define SYS_getpid	172
+#define SYS_getppid	173
+#define SYS_execve	221
