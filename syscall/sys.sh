@@ -33,6 +33,8 @@ entry	write		64
 entry	exit		93
 entry	rt_sigaction	134
 entry	rt_sigreturn	139
+entry	getpid 	172
+entry	getppid	173
 entry	execve		221
 
 echo "};">>$kfuntemp;

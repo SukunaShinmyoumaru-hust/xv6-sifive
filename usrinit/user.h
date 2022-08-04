@@ -12,3 +12,5 @@ extern int openat(int dirfd, char* path, int flags, int mode);
 extern int write(int fd, const void *buf, int len);
 extern int read(int fd, void *buf, int len);
 extern int exit(int n);
+
+void printf(const char *s, ...);

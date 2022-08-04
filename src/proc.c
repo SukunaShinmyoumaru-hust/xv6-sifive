@@ -255,12 +255,6 @@ userinit()
   p->state = RUNNABLE;
   runproc = p;//insert to ready queue
   p->tmask = 0;
-  
-  // uint64 myswtch=(uint64)swtch;
-  // *(uint16*)(myswtch+0x3c) = 0;
-  // uint64 pa = kwalkaddr(p->pagetable, TRAMPOLINE);
-  // printf("[userinit] trampoline = %p, pa = %p\n",trampoline ,pa);
-  // *(uint32 *)(pa + userret - trampoline) = 0;
 
   release(&p->lock);
   __debug_info("userinit\n");
