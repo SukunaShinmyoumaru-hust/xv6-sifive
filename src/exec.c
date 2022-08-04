@@ -116,8 +116,40 @@ void swap(void* a,void* b,int len){
   }
 }
 
+void
+auxalloc(uint64* aux,uint64 atid,uint64 value)
+{
+  //printf("aux[%d] = %p\n",atid,value);
+  uint64 argc = aux[0];
+  aux[argc*2+1] = atid;
+  aux[argc*2+2] = value;
+  aux[argc*2+3] = 0;
+  aux[argc*2+4] = 0;
+  aux[0]++;
+}
 
-static uint64 
+uint64
+loadaux(pagetable_t pagetable,uint64 sp,uint64 stackbase,uint64* aux){
+  int argc = aux[0];
+  if(!argc)return sp;
+  /*
+  printf("aux argc:%d\n",argc);
+  for(int i=1;i<=2*argc+2;i++){
+    printf("final raw aux[%d] = %p\n",i,aux[i]);
+  }
+  */
+  sp -= (2*argc+2) * sizeof(uint64);
+  if(sp < stackbase){
+    return -1;
+  }
+  aux[0] = 0;
+  if(copyout(pagetable, sp, (char *)(aux+1), (2*argc+2)*sizeof(uint64)) < 0){
+    return -1;
+  }
+  return sp;
+}
+
+uint64 
 ustackpushstr(pagetable_t pagetable,uint64* ustack,char* str,uint64 sp,uint64 stackbase)
 {
   uint64 argc = ++ustack[0];
@@ -159,7 +191,12 @@ exec(char *path, char **argv, char **env)
     printf("[exec]env[%d] = %s\n",i,env[i]);
     i++;
   }
-  uint64 sp,entry;
+  uint64 sp,stackbase,entry;
+  uint64 argc,envnum;
+  uint64 aux[AUX_CNT*2+3] = {0,0,0};
+  uint64 environ[10]={0};
+  uint64 ustack[MAXARG+2];
+  char *last,*s;
   struct proc* p = myproc();
   struct proc* np = kmalloc(sizeof(struct proc));
   struct elfhdr elf;
@@ -192,17 +229,84 @@ exec(char *path, char **argv, char **env)
   eunlock(ep);
   print_vma_info(p);
   print_vma_info(np);
-  sp = type_locate_vma(np->vma,STACK)->end;
+  struct vma* stack_vma = type_locate_vma(np->vma,STACK);
+  sp = stack_vma->end;
+  stackbase = stack_vma->addr;
+  ustack[0] = environ[0] =0;
+  if(entry!=elf.entry){
+    //("elf.entry:%p\n",elf.entry);
+    //printf("progentry:%p\n",progentry);
+#ifndef SELFLOAD   
+    if((sp = ustackpushstr(np->pagetable,ustack,path,sp,stackbase))==-1){
+      goto bad;
+    }
+#endif
+    if((sp = ustackpushstr(np->pagetable,environ,"LD_LIBRARY_PATH=/",sp,stackbase))==-1){
+      goto bad;
+    }
+  }
+  // Push argument strings, prepare rest of stack in ustack.
+  for(argc = 0; argv[argc]; argc++) {
+    if((sp = ustackpushstr(np->pagetable,ustack,argv[argc],sp,stackbase))==-1){
+      goto bad;
+    }
+  }
+  for(envnum = 0; environ[envnum]; envnum++) {
+    if((sp = ustackpushstr(np->pagetable,environ,argv[argc],sp,stackbase))==-1){
+      goto bad;
+    }
+  }
+  if((environ[0]+ustack[0]+1)%2){sp -= 8;}//16 aligned
+  //load aux
+  if((sp = loadaux(np->pagetable,sp,stackbase,aux))<0){
+    printf("[exec]pass aux too many\n");
+    goto bad;
+  }
+  
+  argc = environ[0];
+  if(argc){
+    // push the array of argv[] pointers.
+    sp -= (argc+1) * sizeof(uint64);
+    if(sp < stackbase){
+      goto bad;
+    }
+    if(copyout(np->pagetable, sp, (char *)(environ+1), (argc+1)*sizeof(uint64)) < 0){
+      goto bad;
+    }
+  }
+  
+  argc = ustack[0];
+  // push the array of argv[] pointers.
+  sp -= (argc+2) * sizeof(uint64);
+  if(sp < stackbase){
+    goto bad;
+  }
+
+  
+  if(copyout(np->pagetable, sp, (char *)ustack, (argc+2)*sizeof(uint64)) < 0){
+    goto bad;
+  }
+  //stackdisplay(pagetable,sp,sz);
+  // arguments to user main(argc, argv)
+  // argc is returned via the system call return
+  // value, which goes in a0.
+  np->trapframe->a1 = sp+8;
+  
+  for(last=s=path; *s; s++)
+    if(*s == '/')
+      last = s+1;
+  strncpy(p->name, last, sizeof(p->name));
+  
   np->trapframe->sp = sp;
   np->trapframe->epc = entry;
   swap(&(p->pagetable),&(np->pagetable),sizeof(p->pagetable));
   swap(&(p->vma),&(np->vma),sizeof(p->vma));
   swap(&(p->trapframe),&(np->trapframe),sizeof(p->trapframe));
-  //uvmfree(np);
   w_satp(MAKE_SATP(p->pagetable));
   
   sfence_vma();
-  return 0;
+  uvmfree(np);
+  return argc;
 bad:
   uvmfree(np);
   __debug_warn("[exec]exec bad\n");

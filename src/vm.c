@@ -264,10 +264,11 @@ uvmdealloc(pagetable_t pagetable, uint64 start, uint64 end)
 void
 freewalk(pagetable_t pagetable)
 {
-  printf("[freewalk]enter %p\n",pagetable);
+  //printf("[freewalk]enter %p\n",pagetable);
   // there are 2^9 = 512 PTEs in a page table.
   for(int i = 0; i < 512; i++){
     pte_t pte = pagetable[i];
+    if(pagetable[i]==kernel_pagetable[i])continue;
     if((pte & PTE_V) && (pte & (PTE_R|PTE_W|PTE_X) ) == 0){
       // this PTE points to a lower-level page table.
       uint64 child = PTE2PA(pte);

@@ -166,7 +166,7 @@ qemu-gdb: $K/kernel .gdbinit
 commit?=devinit
 
 add:
-	git remote add origin https://gitlab.eduxiji.net/Cty/oskernel2022-rv6.git
+	git remote add origin https://gitlab.eduxiji.net/Cty/oskernrl2022-rv6.git
 
 push:
 	git add .
