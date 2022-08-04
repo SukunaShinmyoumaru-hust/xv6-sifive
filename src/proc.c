@@ -242,8 +242,8 @@ userinit()
 
   p = allocproc();
   initproc = p;
-  alloc_load_vma(p, (uint64) 0, initcodesize, PTE_R|PTE_X|PTE_U);
-  print_vma_info(p->vma);
+  alloc_load_vma(p, (uint64) 0, initcodesize, PTE_R|PTE_W|PTE_X|PTE_U);
+  print_vma_info(p);
   copyout(p->pagetable,0,initcode,initcodesize);
   
 

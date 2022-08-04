@@ -55,7 +55,6 @@
 
 #define USER_TOP (MAXVA)    // virtual address
 #define TRAMPOLINE (USER_TOP - PGSIZE)  // virtual address
-#define TRAPFRAME (TRAMPOLINE - 2 * PGSIZE) // virtual address
 #define SIG_TRAMPOLINE 	(TRAMPOLINE - PGSIZE)
 
 // qemu puts UART registers here in physical memory.
@@ -82,8 +81,8 @@
 #define PLIC_MCLAIM(hart) (PLIC_V + 0x1ff004 + (hart)*0x2000)
 #define PLIC_SCLAIM(hart) (PLIC_V + 0x200004 + (hart)*0x2000)
 
-
-#define USER_STACK_BOTTOM (MAXUVA - PGSIZE)   // 3GB, user stack lower address 
+#define TRAPFRAME 	(MAXUVA - PGSIZE) // virtual address
+#define USER_STACK_BOTTOM (MAXUVA - (2*PGSIZE))   // stack lower address 
 #define USER_MMAP_START   (USER_STACK_BOTTOM - 0x10000000)
 #define USER_STACK_TOP    (USER_MMAP_START + PGSIZE)  
 #define USER_TEXT_START   0x1000

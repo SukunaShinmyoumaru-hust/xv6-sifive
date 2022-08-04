@@ -87,7 +87,7 @@ usertrap(void)
     // system call
     //if(p->killed)
       //exit(-1);
-    // sepc points to the ecall instruction,
+    // sepc points to the ecall 1instruction,
     // but we want to return to the next instruction.
     p->trapframe->epc += 4;
     // an interrupt will change sstatus &c registers,

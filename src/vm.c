@@ -17,6 +17,7 @@
 pagetable_t kernel_pagetable;
 extern char etext[];  // kernel.ld sets this to end of kernel code.
 extern char trampoline[]; // trampoline.S
+extern char sig_trampoline[]; //sig_trampoline.S
 
 void
 kvminit()
@@ -34,12 +35,14 @@ kvminit()
   #endif
   
   // map kernel text executable and read-only.
-  kvmmap(KERNBASE, KERNBASE, (uint64)etext - KERNBASE, PTE_R|PTE_W| PTE_X);
+  kvmmap(KERNBASE, KERNBASE, (uint64)etext - KERNBASE, PTE_R|PTE_X);
   // map kernel data and the physical RAM we'll make use of.
   kvmmap((uint64)etext, (uint64)etext, PHYSTOP - (uint64)etext, PTE_R | PTE_W);
   // map the trampoline for trap entry/exit to
   // the highest virtual address in the kernel.
   kvmmap(TRAMPOLINE, (uint64)trampoline, PGSIZE, PTE_R | PTE_X);
+  // map the trapoline for signal
+  kvmmap(SIG_TRAMPOLINE, (uint64)sig_trampoline, PGSIZE, PTE_R | PTE_X);
   
   __debug_info("kvminit\n");
 }
@@ -195,6 +198,24 @@ kwalkaddr(pagetable_t kpt, uint64 va)
   return pa+off;
 }
 
+
+
+uint64
+kwalkaddr1(pagetable_t kpt, uint64 va)
+{
+  uint64 off = va % PGSIZE;
+  pte_t *pte;
+  uint64 pa;
+  
+  pte = walk(kpt, va, 0);
+  if(pte == 0)
+    return NULL;
+  if((*pte & PTE_V) == 0)
+    return NULL;
+  pa = PTE2PA(*pte);
+  return pa+off;
+}
+
 // Allocate PTEs and physical memory to grow process from oldsz to
 // newsz, which need not be page aligned.  Returns new size or 0 on error.
 uint64
@@ -243,16 +264,18 @@ uvmdealloc(pagetable_t pagetable, uint64 start, uint64 end)
 void
 freewalk(pagetable_t pagetable)
 {
+  printf("[freewalk]enter %p\n",pagetable);
   // there are 2^9 = 512 PTEs in a page table.
   for(int i = 0; i < 512; i++){
     pte_t pte = pagetable[i];
-    if((pte & PTE_V) && (pte & (PTE_R|PTE_W|PTE_X)) == 0){
+    if((pte & PTE_V) && (pte & (PTE_R|PTE_W|PTE_X) ) == 0){
       // this PTE points to a lower-level page table.
       uint64 child = PTE2PA(pte);
       freewalk((pagetable_t)child);
       pagetable[i] = 0;
-    } else if(pte & PTE_V){
-      panic("freewalk: leaf");
+    } 
+    else if(pte & PTE_V){
+      __debug_warn("freewalk: leaf %d\n",i);
       //pagetable[i]=0;
     }
   }

@@ -2,7 +2,7 @@
 # This code runs in user space.
 
 #include "include/sysnum.h"
-#include "user.h"
+#include "include/fcntl.h"
 
 # exec(init, argv)
 .global start

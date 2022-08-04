@@ -107,12 +107,17 @@ clean:
 	*/*.o */*.d */*.asm */*.sym src/include/sysnum.h src/syscall.c \
 	$U/_* $U/initcode $U/usys.S $K/kernel	
 
-ULIB = $U/ulib.o $U/usys.o $U/printf.o
+ULIB = $U/usys.o
 
-_%: %.o
+_%: %.o $U/usys.o
 	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $@ $^
 	$(OBJDUMP) -S $@ > $*.asm
 	$(OBJDUMP) -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $*.sym
+
+$U/usys.S : sys
+
+$U/usys.o : $U/usys.S
+	$(CC) $(CFLAGS) -c -o $U/usys.o $U/usys.S
 
 disk:
 	@rm -f *.sb

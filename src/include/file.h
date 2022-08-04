@@ -3,6 +3,7 @@
 
 #include "types.h"
 #include "dev.h"
+#include "fcntl.h"
 
 struct iovec {
   void  *iov_base;    /* Starting address */
@@ -34,7 +35,6 @@ struct file {
 
 
 #define CONSOLE 1
-#define AT_FDCWD (-100)
 
 #define SEEK_SET  (int)0
 #define SEEK_CUR  (int)1

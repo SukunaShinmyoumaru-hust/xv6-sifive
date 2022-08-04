@@ -110,7 +110,7 @@ argstruct(int n,void* st,int len){
 int
 freevec(char** argv,int len){
   for(int i = 0; i < len && argv[i] != 0; i++){
-    printf("[freevec] argv[%d]=%p\n",i,argv[i]);
+    //printf("[freevec] argv[%d]=%p\n",i,argv[i]);
     kfree(argv[i]);
   }
   return 0;
@@ -122,7 +122,7 @@ argstrvec(int n,char** argv,int max){
   uint64 uarg,uargv;
   memset(argv, 0, max*sizeof(uint64));
   if(argaddr(n, &uargv) < 0||uargv == 0){
-    __debug_warn("[argstrvec] uargv null\n");
+    //__debug_warn("[argstrvec] uargv null\n");
     goto bad;
   }
   for(;;i++){

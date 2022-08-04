@@ -21,11 +21,11 @@ sys_execve()
     env[0] = 0;
   }
 
-  int ret = exec(path, argv, env);
+ int ret = exec(path, argv, env);
 
  freevec(argv,argvlen);
  freevec(env,envlen);
-
+ //printf("[sys exec]ret:%d\n",ret);
  return ret;
 }
 

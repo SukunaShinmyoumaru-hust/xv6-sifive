@@ -11,10 +11,6 @@
 #include "include/printf.h"
 #include "include/string.h"
 
-extern char trampoline[];
-extern char sig_trampoline[];
-extern char trapframe[];
-
 struct vma *vma_list_init(struct proc *p)
 {
   // alloc head
@@ -23,22 +19,8 @@ struct vma *vma_list_init(struct proc *p)
   vma->type = NONE;
   p->vma = vma;
 
-  // alloc TRAMPOLINE
-  if(alloc_vma(p, TRAP, TRAMPOLINE, PGSIZE, PTE_R | PTE_X, 0, (uint64)trampoline) == NULL)
-  {
-    __debug_warn("[vma_list_init] TRAMPOLINE vma init fail\n");
-    goto bad;
-  }
-
-  // alloc SIG_TRAMPOLINE
-  if(alloc_vma(p, TRAP, SIG_TRAMPOLINE, PGSIZE, PTE_R | PTE_X, 0, (uint64)sig_trampoline) == NULL)
-  {
-    __debug_warn("[vma_list_init] SIG_TRAMPOLINE vma init fail\n");
-    goto bad;
-  }
-
   // alloc TRAPFRAME
-  if(alloc_vma(p, TRAP, TRAPFRAME, PGSIZE, PTE_R | PTE_W, 0, (uint64)p->trapframe) == NULL)
+  if(alloc_vma(p, TRAP, TRAPFRAME, PGSIZE, PTE_R | PTE_W , 0, (uint64)p->trapframe) == NULL)
   {
     __debug_warn("[vma_list_init] TRAPFRAME vma init fail\n");
     goto bad;
@@ -128,13 +110,8 @@ struct vma *alloc_vma(
         goto bad;
       }
     }
-    else
+    else if(pa != 0)
     {
-      if(pa == 0)
-      {
-        __debug_warn("[alloc_vma] pa not valid\n");
-        goto bad;
-      }
       if(mappages(p->pagetable, start, sz, pa, perm) != 0)
       {
         __debug_warn("[alloc_vma] mappages failed\n");
@@ -390,13 +367,14 @@ static char * vma_type[] = {
 };
 
 
-void print_vma_info(struct vma *head)
+void print_vma_info(struct proc* p)
 {
+  struct vma * head = p->vma;
   struct vma * pvma = head->next;
-  __debug_info("\t\taddr\t\t\tsz\t\t\tend\t\ttype\n");
+  __debug_info("\t\tva\t\t\tpa\t\t\tsz\t\t\tend\t\ttype\n");
   while(pvma != head){
-    __debug_info("[vma_info]%p\t%p\t%p\t%s\n", 
-                pvma->addr, pvma->sz, pvma->end, vma_type[pvma->type]);
+    __debug_info("[vma_info]%p\t%p\t%p\t%p\t%s\n", 
+                pvma->addr, kwalkaddr1(p->pagetable,pvma->addr),pvma->sz, pvma->end, vma_type[pvma->type]);
     pvma = pvma->next;
   }
 }

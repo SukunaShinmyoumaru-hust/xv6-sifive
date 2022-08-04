@@ -43,6 +43,6 @@ struct vma *alloc_sz_heap_vma(struct proc *p, uint64 sz, int perm);
 struct vma *alloc_load_vma(struct proc *p, uint64 addr, uint64 sz, int perm);
 int free_vma_list(struct proc *p);
 int free_vma(struct proc *p, uint64 addr, uint64 len);
-void print_vma_info(struct vma *head);
+void print_vma_info(struct proc* p);
 #endif
 

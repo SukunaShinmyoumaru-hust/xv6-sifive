@@ -1,5 +1,7 @@
+#include"user.h"
+static char teststr[]="ABCD\n";
 int main(){
-  int a = 0;
-  a++;
+  write(0,teststr,5);
+  exit(0);
   return 0;
 }

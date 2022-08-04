@@ -5,3 +5,4 @@
 #define O_CREATE  0x40
 #define O_TRUNC   0x400
 #define O_DIRECTORY	0x0200000
+#define AT_FDCWD  -100
