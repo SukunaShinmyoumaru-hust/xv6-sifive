@@ -7,6 +7,7 @@
 #include "include/copy.h"
 #include "include/proc.h"
 #include "include/stat.h"
+#include "include/dev.h"
 #include "include/fat32.h"
 #include "include/string.h"
 #include "include/kalloc.h"
@@ -59,13 +60,9 @@ int fat32init=0;
 extern void vdisk_write(struct buf *b);
 extern void vdisk_read(struct buf *b);
 extern void disk_init(void);
-extern char sacrifice_start[];
-extern uint64 sacrifice_size;
 
 struct fs FatFs[FSNUM];
 struct fs* rootfs;
-struct dirent* devnull;
-struct dirent* devzero;
 int debug_output;
 
 int fs_init()
@@ -83,24 +80,6 @@ int fs_init()
     FatFs[0].disk_write = (void*)vdisk_write;
     FatFs[0].devno = 0;
     return fat32_init(&FatFs[0]);
-}
-
-int specfsinit()
-{
-  devnull = create(NULL,"/dev/null",T_FILE,0);
-  eunlock(devnull);
-  devzero = create(NULL,"/dev/zero",T_FILE,0);
-  eunlock(devzero);
-  struct dirent* ep;
-  ep = create(NULL,"/etc/passwd", T_FILE, 0);
-  eunlock(ep);
-  eput(ep);
-  ep = create(NULL,"/sacrifice",T_FILE,0);
-  ewrite(ep, 0, (uint64)sacrifice_start, 0, sacrifice_size);
-  eunlock(ep);
-  eput(ep);
-  __debug_info("specfsinit\n");
-  return 0;
 }
 
 /**
@@ -322,7 +301,7 @@ static uint rw_clus(struct fs * self_fs, uint32 cluster, int write, int user, ui
         }
         
         if (write) {
-            if ((bad = either_copyin(bp->data + (off % BSIZE), user, data, m)) != -1) {
+            if ((bad = either_copyin(user, bp->data + (off % BSIZE), data, m)) != -1) {
                 bwrite(self_fs->devno, bp);
             }
         } else {
@@ -979,26 +958,31 @@ static char *skipelem(char *path, char *name)
 
 
 // FAT32 version of namex in xv6's original file system.
-static struct dirent *lookup_path(struct dirent* env,char *path, int parent, char *name)
+static struct dirent *lookup_path(struct dirent* env,char *path, int parent, char *name,int* devno)
 {
     struct dirent *entry, *next;
     
     struct fs * self_fs;
-    
+    if(devno)*devno = -1;
     if (*path == '/') {
         self_fs = &FatFs[0];
         entry = edup(&self_fs->root);
+    } else if(env){
+        entry = edup(env); 
     } else if (*path != '\0') {
         self_fs = &FatFs[myproc()->cwd->dev];
         entry = edup(myproc()->cwd);
-    } else if(env){
-        entry = edup(env);
-    } else{
+    }else{
         return NULL;
     }
 
     while ((path = skipelem(path, name)) != 0) {
         elock(entry);
+        if(devno&&entry == dev){
+          eunlock(entry);
+          *devno = devlookup(name);
+          return entry;
+        }
         if (!(entry->attribute & ATTR_DIRECTORY)) {
             eunlock(entry);
             eput(entry);
@@ -1072,8 +1056,6 @@ void ekstat(struct dirent *de, struct kstat *st)
     st->st_mode = 0;
     if(de->attribute|ATTR_DIRECTORY){
       st->st_mode |= S_IFDIR;
-    }else if(de==devnull||de == devzero){
-      st->st_mode |= S_IFCHR;
     }
 }
 
@@ -1090,20 +1072,20 @@ void estatfs(struct dirent *de, struct statfs *st){
     st->f_namelen = FAT32_MAX_FILENAME;
 }
 
-struct dirent *ename(struct dirent* env,char *path)
+struct dirent *ename(struct dirent* env,char *path,int* devno)
 {
     char name[FAT32_MAX_FILENAME + 1];
-    return lookup_path(env,path, 0, name);
+    return lookup_path(env,path, 0, name, devno);
 }
 
-struct dirent *enameparent(struct dirent* env,char *path, char *name)
+struct dirent *enameparent(struct dirent* env,char *path, char *name,int* devno)
 {
-    return lookup_path(env,path, 1, name);
+    return lookup_path(env,path, 1, name, devno);
 }
 
 int emount(struct fs* fatfs,char* mnt){
-    struct dirent* mntpoint = ename(NULL,mnt);
-    if(mntpoint == NULL)return -1; 
+    struct dirent* mntpoint = ename(NULL,mnt,0);
+    if(mntpoint == NULL||!(mntpoint->attribute&ATTR_DIRECTORY))return -1; 
     mntpoint = edup(mntpoint);
     mntpoint->mnt = 1;
     mntpoint->dev = fatfs->devno;
@@ -1112,7 +1094,7 @@ int emount(struct fs* fatfs,char* mnt){
 }
 
 int eumount(char* mnt){
-    struct dirent* mntpoint = ename(NULL,mnt);
+    struct dirent* mntpoint = ename(NULL,mnt,0);
     if(mntpoint == NULL)return -1; 
     if(mntpoint->mnt) mntpoint->mnt=0;
     if(FatFs[mntpoint->dev].image)eput(FatFs[mntpoint->dev].image);
@@ -1160,7 +1142,7 @@ create(struct dirent* env, char *path, short type, int mode)
     mode = 0;  
   }
 
-  if((dp = enameparent(env, path, name)) == NULL)
+  if((dp = enameparent(env, path, name,0)) == NULL)
   {
     get_parent_name(path, pname, name);
     dp = create(env, pname, T_DIR, O_RDWR);

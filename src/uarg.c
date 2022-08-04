@@ -1,5 +1,6 @@
 #include"include/syscall.h"
 #include"include/pm.h"
+#include"include/copy.h"
 
 // Fetch the uint64 at addr from the current process.
 int
@@ -21,7 +22,7 @@ fetchstr(uint64 addr, char *buf, int max)
 {
   // struct proc *p = myproc();
   // int err = copyinstr(p->pagetable, buf, addr, max);
-  int err = copyinstr2(buf, addr, max);
+  int err = either_copyin(1,buf, addr, max);
   if(err < 0)
     return err;
   return strlen(buf);
@@ -76,14 +77,17 @@ argstr(int n, char *buf, int max)
   uint64 addr;
   if(argaddr(n, &addr) < 0)
     return -1;
+  //printf("[argstr] str addr:%p\n");
   return fetchstr(addr, buf, max);
 }
 
 int
 argfd(int n, int *pfd, struct file **pf)
 {
-  int fd;
-  struct file *f;
+  int fd = -1;
+  struct file *f = NULL;
+  if(pfd)*pfd = -1;
+  if(pf)*pf = NULL;
   struct proc* p = myproc();
   if(argint(n, &fd) < 0)
     return -1;

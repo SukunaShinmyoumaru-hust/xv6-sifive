@@ -11,6 +11,8 @@
 #include "include/file.h"
 #include "include/trap.h"
 #include "include/vm.h"
+#include "include/vma.h"
+#include "include/pm.h"
 
 
 extern pagetable_t kernel_pagetable;
@@ -18,13 +20,17 @@ extern void swtch(struct context*, struct context*);
 struct proc proc[NPROC];
 
 struct proc *initproc;
+struct proc *runproc;
 
 int nextpid = 1;
 int procfirst = 1;
 struct spinlock pid_lock;
 
 extern char trampoline[]; // trampoline.S
+extern char userret[];
 extern char sig_trampoline[]; // trampoline.S
+extern char initcode[]; // trampoline.S
+extern int initcodesize;
 
 void
 procinit(){
@@ -38,7 +44,9 @@ void scheduler(){
   struct cpu *c = mycpu();
   c->proc = 0;
   while(1){
-    struct proc* p = initproc;
+    struct proc* p = runproc;  //...
+    runproc = NULL;
+    // printf("[scheduler]hart %d enter:%p\n",c-cpus,p);
     if(p){
       acquire(&p->lock);
       if(p->state == RUNNABLE) {
@@ -48,7 +56,7 @@ void scheduler(){
         // printf("[scheduler]found runnable proc with pid: %d\n", p->pid);
         p->state = RUNNING;
         c->proc = p;
-        w_satp(MAKE_SATP(kernel_pagetable));
+        w_satp(MAKE_SATP(p->pagetable));
         sfence_vma();
         swtch(&c->context, &p->context);
         w_satp(MAKE_SATP(kernel_pagetable));
@@ -60,14 +68,11 @@ void scheduler(){
         // found = 1;
       }
       release(&p->lock);
+    }else{
+      intr_on();
+      asm volatile("wfi");
     }
   }
-}
-
-void
-userinit()
-{
-  __debug_info("userinit\n");
 }
 
 int
@@ -92,9 +97,10 @@ freeproc(struct proc *p)
   if(p->ofile)
     kfree((void*)p->ofile);
   p->ofile = 0;
-
+  if(p->kstack)
+    freepage((void *)p->kstack);
   if(p->pagetable)
-    proc_freepagetable(p->pagetable, p->sz);
+    proc_freepagetable(p);
   p->pagetable = 0;
   //delvmas(p->vma);
   p->vma = NULL;
@@ -139,19 +145,22 @@ found:
   p->pid = allocpid();
   p->killed = 0;
   p->filelimit = NOFILE;
-  p->vma = NULL;
   p->robust_list = NULL;
   p->clear_child_tid = NULL;
   p->set_child_tid = NULL;
+  p->vma = NULL;
   // Allocate a trapframe page.
-  if((p->trapframe = kmalloc(sizeof(struct trapframe))) == NULL){
+  if((p->trapframe = allocpage()) == NULL){
     release(&p->lock);
     return NULL;
   }
 
+  p->kstack = (uint64)allocpage();
+  
+  
   // An empty user page table.
   // And an identical kernel page table for this proc.
-  if ((p->pagetable = proc_pagetable(p)) == NULL) {
+  if ((proc_pagetable(p)) == NULL) {
     freeproc(p);
     release(&p->lock);
     return NULL;
@@ -172,8 +181,6 @@ found:
   }
   */
 
-  p->kstack = VKSTACK;
-
   // Set up new context to start executing at forkret,
   // which returns to user space.
   memset(&p->context, 0, sizeof(p->context));
@@ -193,6 +200,7 @@ found:
   return p;
 }
 
+
 // Create a user page table for a given process,
 // with no user memory, but with trampoline pages.
 pagetable_t
@@ -201,57 +209,70 @@ proc_pagetable(struct proc *p)
   pagetable_t pagetable;
 
   // An empty page table.
-  pagetable = uvmcreate();
+  pagetable = kvmcreate();
   if(pagetable == 0)
     return NULL;
 
-  // map the trampoline code (for system call return)
-  // at the highest user virtual address.
-  // only the supervisor uses it, on the way
-  // to/from user space, so not PTE_U.
-  if(mappages(pagetable, TRAMPOLINE, PGSIZE,
-              (uint64)trampoline, PTE_R | PTE_X) < 0){
-    uvmfree(pagetable, 0);
+  p->pagetable = pagetable;
+
+  if(vma_list_init(p) == NULL)
+  {
+    __debug_warn("[proc_pagetable] vma list init failed\n");
+    p->pagetable = NULL;
+    freewalk(pagetable);
     return NULL;
   }
-
-  // map the trapframe just below TRAMPOLINE, for trampoline.S.
-  if(mappages(pagetable, SIG_TRAMPOLINE, PGSIZE, (uint64)sig_trampoline, PTE_R | PTE_X | PTE_U) < 0){
-    uvmfree(pagetable, 0);
-    vmunmap(pagetable, TRAMPOLINE, 1, 0);
-    return NULL;
-  }
-
-  // map the trapframe just below TRAMPOLINE, for trampoline.S.
-  if(mappages(pagetable, TRAPFRAME, PGSIZE,
-              (uint64)(p->trapframe), PTE_R | PTE_W) < 0){
-    vmunmap(pagetable, SIG_TRAMPOLINE, 1, 0);
-    vmunmap(pagetable, TRAMPOLINE, 1, 0);
-    uvmfree(pagetable, 0);
-    return NULL;
-  }
-
-
+  
   return pagetable;
 }
+
 
 // Free a process's page table, and free the
 // physical memory it refers to.
 void
-proc_freepagetable(pagetable_t pagetable,uint64 sz)
+proc_freepagetable(struct proc *p)
 {
-  vmunmap(pagetable, SIG_TRAMPOLINE, 1, 0);
-  vmunmap(pagetable, TRAMPOLINE, 1, 0);
-  vmunmap(pagetable, TRAPFRAME, 1, 0);
-  uvmfree(pagetable, sz);
+  uvmfree(p);
 }
+
+void
+userinit()
+{
+  struct proc *p;
+
+  p = allocproc();
+  initproc = p;
+  alloc_load_vma(p, (uint64) 0, initcodesize, PTE_R|PTE_X|PTE_U);
+  print_vma_info(p->vma);
+  copyout(p->pagetable,0,initcode,initcodesize);
+  
+
+  p->trapframe->epc = 0x0;      // user program counter
+  p->trapframe->sp = type_locate_vma(p->vma,STACK)->end;  // user stack pointer
+  
+  safestrcpy(p->name, "initcode", sizeof(p->name));
+  
+  p->state = RUNNABLE;
+  runproc = p;//insert to ready queue
+  p->tmask = 0;
+  
+  // uint64 myswtch=(uint64)swtch;
+  // *(uint16*)(myswtch+0x3c) = 0;
+  // uint64 pa = kwalkaddr(p->pagetable, TRAMPOLINE);
+  // printf("[userinit] trampoline = %p, pa = %p\n",trampoline ,pa);
+  // *(uint32 *)(pa + userret - trampoline) = 0;
+
+  release(&p->lock);
+  __debug_info("userinit\n");
+}
+
 
 // A fork child's very first scheduling by scheduler()
 // will swtch to forkret.
 void
 forkret(void)
 {
-  // printf("run in forkret\n");
+  //printf("run in forkret\n");
 
   // Still holding p->lock from scheduler.
   release(&myproc()->lock);
@@ -289,6 +310,12 @@ void
 wakeup(void *chan)
 {
 
+
+}
+
+void
+yield()
+{
 
 }
 

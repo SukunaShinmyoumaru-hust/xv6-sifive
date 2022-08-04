@@ -26,11 +26,14 @@ entry(){
 
 
 entry	dup		23
-entry	execve		221
+entry	dup3		24
+entry	openat		56
+entry	read		63
+entry	write		64
 entry	exit		93
 entry	rt_sigaction	134
 entry	rt_sigreturn	139
-entry	dev		500
+entry	execve		221
 
 echo "};">>$kfuntemp;
 echo "};">>$kstrtemp;

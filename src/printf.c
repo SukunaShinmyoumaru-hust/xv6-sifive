@@ -332,6 +332,11 @@ __debug_error(char *fmt, ...){
   }
   if(locking)
     release(&pr.lock);
+  
+  backtrace();
+  panicked = 1; // freeze uart output from other CPUs
+  for(;;)
+    ;
     
 #endif
 }

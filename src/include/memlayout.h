@@ -83,11 +83,13 @@
 #define PLIC_SCLAIM(hart) (PLIC_V + 0x200004 + (hart)*0x2000)
 
 
-#define USER_STACK_BOTTOM 0xC0000000   // 3GB, user stack lower address 
-#define USER_TEXT_START 0x1000
-#define VKSTACK                 0x3EC0000000L
-#define MMAP_START           0x70000000 
-#define MMAP_END             0x71000000
+#define USER_STACK_BOTTOM (MAXUVA - PGSIZE)   // 3GB, user stack lower address 
+#define USER_MMAP_START   (USER_STACK_BOTTOM - 0x10000000)
+#define USER_STACK_TOP    (USER_MMAP_START + PGSIZE)  
+#define USER_TEXT_START   0x1000
+#define VKSTACK           0x3EC0000000L
+
+
 
 
 

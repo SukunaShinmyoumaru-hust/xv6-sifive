@@ -11,6 +11,8 @@
 #define QEMU_LOGO9 "'--'   '--'      `-'      `----'                `-----'--' `------'  `--'   `--'   `-----'\n"
 #define BACKSPACE 0x100
 
+void consputc(int c);
+
 void printfinit(void);
 
 void printf(char *fmt, ...);

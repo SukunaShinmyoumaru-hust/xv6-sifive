@@ -148,7 +148,7 @@ struct proc {
   struct tms proc_tms;
   struct proc* next;
   struct proc* prev;
-  struct vma*  vma;
+  struct vma *vma;
   // signal
 	ksigaction_t *sig_act;
 	__sigset_t sig_set;
@@ -167,7 +167,8 @@ int             fork(void);
 void            forkret(void);
 int             growproc(int);
 pagetable_t     proc_pagetable(struct proc *);
-void            proc_freepagetable(pagetable_t, uint64);
+// void            proc_freepagetable(pagetable_t, uint64);
+void            proc_freepagetable(struct proc *p);
 int             kill(int pid,int sig);
 struct proc*    myproc();
 void            procinit(void);

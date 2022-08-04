@@ -18,7 +18,6 @@
 #include "include/vm.h"
 #include "include/copy.h"
 
-struct devsw devsw[NDEV];
 struct {
   struct spinlock lock;
   struct file file[NFILE];
@@ -160,15 +159,14 @@ fileread(struct file *f, uint64 addr, int n)
         //r = piperead(f->pipe, addr, n);
         break;
     case FD_DEVICE:
-        if(f->major < 0 || f->major >= NDEV || !devsw[f->major].read)
+        if(f->major < 0 || f->major >= getdevnum() || !devsw[f->major].read)
           return -1;
-        r = devsw[f->major].read(1, addr, n);
+        struct devsw* mydev = devsw + f->major;
+        acquire(&mydev->lk);
+        r = mydev->read(1, addr, n);
+        release(&mydev->lk);
         break;
     case FD_ENTRY:
-        if(f->ep == devnull)return 0;
-        if(f->ep == devzero){
-          return zero_out(addr,n);
-        }
         elock(f->ep);
         if((r = eread(f->ep, 1, addr, f->off, n)) > 0)
           f->off += r;
@@ -181,7 +179,6 @@ fileread(struct file *f, uint64 addr, int n)
   return r;
 }
 
-extern char consolewrite[];
 // Write to file f.
 // addr is a user virtual address.
 int
@@ -191,15 +188,16 @@ filewrite(struct file *f, uint64 addr, int n)
   //printf("major:%d off:%p\n",f->major,consolewrite-(char*)(devsw[f->major].write));
   if(f->writable == 0)
     return -1;
-
   if(f->type == FD_PIPE){
     //ret = pipewrite(f->pipe, addr, n);
   } else if(f->type == FD_DEVICE){
-    if(f->major < 0 || f->major >= NDEV || !devsw[f->major].write)
+    if(f->major < 0 || f->major >= getdevnum() || !devsw[f->major].write)
       return -1;
-    ret = devsw[f->major].write(1, addr, n);
+    struct devsw* mydev = devsw + f->major;
+    acquire(&mydev->lk);
+    ret = mydev->write(1, addr, n);
+    release(&mydev->lk);
   } else if(f->type == FD_ENTRY){
-    if(f->ep == devnull||f->ep == devzero)return 0;
     elock(f->ep);
     if (ewrite(f->ep, 1, addr, f->off, n) == n) {
       ret = n;
@@ -249,12 +247,18 @@ dirnext(struct file *f, uint64 addr)
 struct file*
 findfile(char* path)
 {
-  struct dirent* ep = ename(NULL,path);
+  int dev;
+  struct dirent* ep = ename(NULL,path,&dev);
   struct proc* p = myproc();
   if(ep == NULL)return NULL;
   elock(ep);
   for(int i = 0;i<NOFILEMAX(p);i++){
     if(p->ofile[i]->type==FD_ENTRY&&p->ofile[i]->ep==ep){
+      eunlock(ep);
+      eput(ep);
+      return p->ofile[i];
+    }
+    if(p->ofile[i]->type==FD_DEVICE&&p->ofile[i]->major==dev){
       eunlock(ep);
       eput(ep);
       return p->ofile[i];

@@ -6,11 +6,19 @@ LINKER=linker/kernel.ld
 FS?=FAT
 MAC?=SIFIVE_U
 
+ifeq ($(MAC),SIFIVE_U)
+DISK:=$K/link_null.o
+endif
+
+ifeq ($(MAC),QEMU)
+DISK:=$K/link_disk.o
+endif
+
 OBJS += \
 	$K/entry.o \
-	$K/link_disk.o \
 	$K/bio.o \
 	$K/copy.o \
+	$(DISK) \
 	$K/ramdisk.o \
 	$K/spi.o \
 	$K/sd.o \
@@ -23,6 +31,7 @@ OBJS += \
 	$K/fat32.o \
 	$K/pipe.o \
 	$K/file.o \
+	$K/bin.o \
 	$K/dev.o \
 	$K/swtch.o \
 	$K/trampoline.o \
@@ -39,6 +48,7 @@ OBJS += \
 	$K/kernelvec.o \
 	$K/trap.o \
 	$K/proc.o \
+	$K/vma.o\
 	$K/uarg.o \
 	$K/sysfile.o \
 	$K/sysproc.o \
@@ -59,7 +69,7 @@ CFLAGS = -Wall -Werror -O -fno-omit-frame-pointer -ggdb -DDEBUG -DWARNING -DERRO
 CFLAGS += -MD
 CFLAGS += -mcmodel=medany
 CFLAGS += -ffreestanding -fno-common -nostdlib -mno-relax
-CFLAGS += -I.
+CFLAGS += -I. -I./src
 CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
 
 # Disable PIE when possible (for Ubuntu 16.10 toolchain)
@@ -80,7 +90,7 @@ $K/kernel:sys $(OBJS) $(LINKER)
 	@$(OBJDUMP) -t $K/kernel | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $K/kernel.sym
 
 
-$K/dev.S:$U/_sacrifice $U/initcode
+$K/bin.S:$U/_sacrifice $U/initcode
 
 sys:
 	./syscall/sys.sh
@@ -117,7 +127,13 @@ disk.img:disk
 	@sudo mount disk.img $(dst)
 	@sudo cp -r sd/* $(dst)
 	@sudo umount $(dst)
-	
+
+# try to generate a unique GDB port
+GDBPORT = $(shell expr `id -u` % 5000 + 25000)
+# QEMU's gdb stub command line changed in 0.11
+QEMUGDB = $(shell if $(QEMU) -help | grep -q '^-gdb'; \
+	then echo "-gdb tcp::$(GDBPORT)"; \
+	else echo "-s -p $(GDBPORT)"; fi)	
 
 ifndef CPUS
 CPUS := 5
@@ -134,7 +150,14 @@ QEMUOPTS = -machine $(M) -bios $(SBI) -kernel $K/kernel -smp $(CPUS) -nographic
 qemu: $K/kernel
 	$(QEMU) $(QEMUOPTS)
 
-commit?=hi
+.gdbinit: .gdbinit.tmpl-riscv
+	sed "s/:1234/:$(GDBPORT)/" < $^ > $@
+
+qemu-gdb: $K/kernel .gdbinit
+	@echo "*** Now run 'gdb' in another window." 1>&2
+	$(QEMU) $(QEMUOPTS) -S $(QEMUGDB)
+
+commit?=devinit
 
 add:
 	git remote add origin https://gitlab.eduxiji.net/Cty/oskernel2022-rv6.git

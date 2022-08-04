@@ -15,6 +15,7 @@
 #include "include/printf.h"
 #include "include/proc.h"
 #include "include/buf.h"
+#include "include/dev.h"
 static inline void inithartid(unsigned long hartid) {
   asm volatile("mv tp, %0" : : "r" (hartid));
 }
@@ -64,7 +65,7 @@ main(unsigned long hartid, unsigned long dtb_pa)
     binit();
     disk_init();
     fs_init();
-    specfsinit();
+    devinit();
     fileinit();
     __sync_synchronize();
 

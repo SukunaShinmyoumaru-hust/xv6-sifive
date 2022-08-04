@@ -2,14 +2,15 @@
 # This code runs in user space.
 
 #include "include/sysnum.h"
+#include "user.h"
 
 # exec(init, argv)
 .global start
 start:
-	li a0, 2
-	li a1, 1
-	li a2, 0
-	li a7, SYS_dev
+	li a0, AT_FDCWD
+	la a1, console
+	li a2, O_RDWR
+	li a7, SYS_openat
 	ecall	# dev(O_RDWR, CONSOLE, 0);
 	
 	li a0, 0
@@ -33,6 +34,10 @@ end:
 	jal end
 init:
 	.string "/sacrifice\0"
+console:
+	.string "/dev/console\0"
+testread:
+	.space 12
 
 .p2align 2
 argv:

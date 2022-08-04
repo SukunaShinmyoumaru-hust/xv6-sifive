@@ -2,6 +2,7 @@
 #define __FILE_H
 
 #include "types.h"
+#include "dev.h"
 
 struct iovec {
   void  *iov_base;    /* Starting address */
@@ -30,12 +31,7 @@ struct file {
 // #define	mkdev(m,n)  ((uint)((m)<<16| (n)))
 
 // map major device number to device functions.
-struct devsw {
-  int (*read)(int, uint64, int);
-  int (*write)(int, uint64, int);
-};
 
-extern struct devsw devsw[];
 
 #define CONSOLE 1
 #define AT_FDCWD (-100)

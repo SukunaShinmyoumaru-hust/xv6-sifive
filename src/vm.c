@@ -34,12 +34,12 @@ kvminit()
   #endif
   
   // map kernel text executable and read-only.
-  kvmmap(KERNBASE, KERNBASE, (uint64)etext - KERNBASE, PTE_R | PTE_X);
+  kvmmap(KERNBASE, KERNBASE, (uint64)etext - KERNBASE, PTE_R|PTE_W| PTE_X);
   // map kernel data and the physical RAM we'll make use of.
   kvmmap((uint64)etext, (uint64)etext, PHYSTOP - (uint64)etext, PTE_R | PTE_W);
   // map the trampoline for trap entry/exit to
   // the highest virtual address in the kernel.
-  //kvmmap(TRAMPOLINE, (uint64)trampoline, PGSIZE, PTE_R | PTE_X);
+  kvmmap(TRAMPOLINE, (uint64)trampoline, PGSIZE, PTE_R | PTE_X);
   
   __debug_info("kvminit\n");
 }
@@ -198,7 +198,7 @@ kwalkaddr(pagetable_t kpt, uint64 va)
 // Allocate PTEs and physical memory to grow process from oldsz to
 // newsz, which need not be page aligned.  Returns new size or 0 on error.
 uint64
-uvmalloc(pagetable_t pagetable, uint64 start, uint64 end)
+uvmalloc(pagetable_t pagetable, uint64 start, uint64 end, int perm)
 {
   char *mem;
   uint64 a;
@@ -211,7 +211,7 @@ uvmalloc(pagetable_t pagetable, uint64 start, uint64 end)
       return -1;
     }
     memset(mem, 0, PGSIZE);
-    if (mappages(pagetable, a, PGSIZE, (uint64)mem, PTE_W|PTE_X|PTE_R|PTE_U) != 0) {
+    if (mappages(pagetable, a, PGSIZE, (uint64)mem, perm) != 0) {
       freepage(mem);
       uvmdealloc(pagetable, start, a);
       printf("[uvmalloc]map user page failed\n");
@@ -262,38 +262,26 @@ freewalk(pagetable_t pagetable)
 // create an empty user page table.
 // returns 0 if out of memory.
 pagetable_t
-uvmcreate()
+kvmcreate()
 {
   pagetable_t pagetable;
   pagetable = (pagetable_t) allocpage();
   if(pagetable == NULL)
     return NULL;
   memset(pagetable, 0, PGSIZE);
+  memmove(pagetable, kernel_pagetable, PGSIZE);
   return pagetable;
 }
 
 // Free user memory pages,
 // then free page-table pages.
 void
-uvmfree(pagetable_t pagetable, uint64 sz)
+uvmfree(struct proc *p)
 {
-  if(sz > 0){
-    uint64 npages = PGROUNDUP(sz)/PGSIZE;
-    uint64 a;
-    pte_t *pte;
-    for(a = 0; a < npages * PGSIZE; a += PGSIZE){
-      if((pte = walk(pagetable, a, 0)) == 0)
-        continue;
-      if((*pte & PTE_V) == 0)
-        continue;
-      if(PTE_FLAGS(*pte) == PTE_V)
-        continue;
-      uint64 pa = PTE2PA(*pte);
-      freepage((void*)pa);
-      *pte = 0;
-    }
-  }
+  free_vma_list(p);
   // vmunmap(pagetable, 0, PGROUNDUP(sz)/PGSIZE, 1);
-  freewalk(pagetable);
+  freewalk(p->pagetable);
 }
+
+
 

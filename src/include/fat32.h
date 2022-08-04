@@ -120,12 +120,9 @@ struct statfs {
 
 extern struct fs FatFs[FSNUM];
 extern struct fs* rootfs;
-extern struct dirent* devnull;
-extern struct dirent* devzero;
 
 
 int                 fs_init();
-int                 specfsinit();
 int                 fat32_init(struct fs* self_fs);
 struct fs*          fat32_img(struct dirent* img);
 struct dirent *     dirlookup(struct dirent *dp, char *filename, uint *poff);
@@ -143,8 +140,8 @@ void                estatfs(struct dirent *de, struct statfs *st);
 void                elock(struct dirent *entry);
 void                eunlock(struct dirent *entry);
 int                 enext(struct dirent *dp, struct dirent *ep, uint off, int *count);
-struct dirent *     ename(struct dirent* env,char* path);
-struct dirent *     enameparent(struct dirent* env, char* path, char* name);
+struct dirent *     ename(struct dirent* env,char* path,int *devno);
+struct dirent *     enameparent(struct dirent* env, char* path, char* name,int *devno);
 int                 eread(struct dirent *entry, int user_dst, uint64 dst, uint off, uint n);
 int                 ewrite(struct dirent *entry, int user_src, uint64 src, uint off, uint n);
 int                 emount(struct fs* fatfs,char* mnt);

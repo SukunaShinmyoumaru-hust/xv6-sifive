@@ -5,6 +5,7 @@
 #include "include/copy.h"
 #include "include/vm.h"
 #include "include/string.h"
+#include "include/printf.h"
 
 // Copy from kernel to user.
 // Copy len bytes from src to virtual address dstva in a given page table.
@@ -189,7 +190,7 @@ either_copyout(int user_dst, uint64 dst, void *src, uint64 len)
 // depending on usr_src.
 // Returns 0 on success, -1 on error.
 int
-either_copyin(void *dst, int user_src, uint64 src, uint64 len)
+either_copyin( int user_src,void *dst, uint64 src, uint64 len)
 {
   struct proc *p = myproc();
   if(user_src){
