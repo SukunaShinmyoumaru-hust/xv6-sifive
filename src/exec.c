@@ -179,18 +179,6 @@ stackdisplay(pagetable_t pagetable,uint64 sp,uint64 sz)
 int
 exec(char *path, char **argv, char **env)
 {
-  printf("[exec]path:%s\n",path);
-  int i;
-  i = 0;
-  while(argv[i]){
-    printf("[exec]argv[%d] = %s\n",i,argv[i]);
-    i++;
-  }
-  i = 0;
-  while(env[i]){
-    printf("[exec]env[%d] = %s\n",i,env[i]);
-    i++;
-  }
   uint64 sp,stackbase,entry;
   uint64 argc,envnum;
   uint64 aux[AUX_CNT*2+3] = {0,0,0};
@@ -227,8 +215,8 @@ exec(char *path, char **argv, char **env)
     goto bad;
   }
   eunlock(ep);
-  print_vma_info(p);
-  print_vma_info(np);
+  //print_vma_info(p);
+  //print_vma_info(np);
   struct vma* stack_vma = type_locate_vma(np->vma,STACK);
   sp = stack_vma->end;
   stackbase = stack_vma->addr;

@@ -85,8 +85,8 @@ usertrap(void)
   uint64 cause = r_scause();
   if(cause == EXCP_ENV_CALL){
     // system call
-    //if(p->killed)
-      //exit(-1);
+    if(p->killed)
+      exit(-1);
     // sepc points to the ecall 1instruction,
     // but we want to return to the next instruction.
     p->trapframe->epc += 4;
@@ -253,7 +253,7 @@ int devintr(void) {
 	}
 	else if (0x8000000000000005L == scause) {
 		timer_tick();
-    //proc_tick();
+                //proc_tick();
 		return 2;
 	}
 	else { return 0;}

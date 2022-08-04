@@ -46,9 +46,10 @@ sys_getppid(void){
 uint64
 sys_exit()
 {
-  printf("[sys exit]\n");
-  while(1){
-  
+  int n;
+  if(argint(0,&n)<0){
+    return -1;
   }
+  exit(n);
   return 0;
 }

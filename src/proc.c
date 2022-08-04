@@ -4,6 +4,7 @@
 #include "include/riscv.h"
 #include "include/spinlock.h"
 #include "include/proc.h"
+#include "include/queue.h"
 #include "include/intr.h"
 #include "include/kalloc.h"
 #include "include/printf.h"
@@ -14,6 +15,7 @@
 #include "include/vma.h"
 #include "include/pm.h"
 
+#define WAITQ_NUM 10
 
 extern pagetable_t kernel_pagetable;
 extern void swtch(struct context*, struct context*);
@@ -21,6 +23,10 @@ struct proc proc[NPROC];
 
 struct proc *initproc;
 struct proc *runproc;
+queue readyq;
+struct spinlock waitq_pool_lk;
+queue waitq_pool[10];
+int waitq_valid[10];
 
 int nextpid = 1;
 int procfirst = 1;
@@ -33,10 +39,76 @@ extern char initcode[]; // trampoline.S
 extern int initcodesize;
 
 void
+waitq_pool_init(){
+  for(int i = 0;i<WAITQ_NUM;i++){
+    waitq_valid[i] = 0;
+  }
+  initlock(&waitq_pool_lk,"waitq pool");
+}
+
+void
 procinit(){
   initlock(&pid_lock,"pid lock");
   initproc = NULL;
+  queue_init(&readyq,NULL);
+  waitq_pool_init();
   __debug_info("procinit\n");
+}
+
+queue*
+findwaitq(void* chan){
+  acquire(&waitq_pool_lk);
+  for(int i=0;i<WAITQ_NUM ;i++){
+    if(waitq_valid[i]&&waitq_pool[i].chan == chan){
+      release(&waitq_pool_lk);
+      return waitq_pool+i;
+    }
+  }
+  release(&waitq_pool_lk);
+  return NULL;
+}
+
+queue*
+allocwaitq(void* chan){
+  acquire(&waitq_pool_lk);
+  for(int i=0;i<WAITQ_NUM ;i++){
+    if(!waitq_valid[i]){
+      waitq_valid[i] = 1;
+      queue_init(waitq_pool+i,chan);
+      release(&waitq_pool_lk);
+      return waitq_pool+i;
+    }
+  }
+  release(&waitq_pool_lk);
+  return NULL;
+}
+
+void
+delwaitq(queue* q){
+  acquire(&waitq_pool_lk);
+  int i = q - waitq_pool;
+  waitq_valid[i] = 0;
+  release(&waitq_pool_lk);
+}
+
+void
+readyq_push(struct proc* p){
+  queue_push(&readyq,p);
+}
+
+struct proc*
+readyq_pop(){
+  return queue_pop(&readyq);
+}
+
+void
+waitq_push(queue *q,struct proc* p){
+  queue_push(q,p);
+}
+
+struct proc*
+waitq_pop(queue *q){
+  return queue_pop(q);
 }
 
 void scheduler(){
@@ -44,8 +116,7 @@ void scheduler(){
   struct cpu *c = mycpu();
   c->proc = 0;
   while(1){
-    struct proc* p = runproc;  //...
-    runproc = NULL;
+    struct proc* p = readyq_pop();  //...
     // printf("[scheduler]hart %d enter:%p\n",c-cpus,p);
     if(p){
       acquire(&p->lock);
@@ -253,7 +324,7 @@ userinit()
   safestrcpy(p->name, "initcode", sizeof(p->name));
   
   p->state = RUNNABLE;
-  runproc = p;//insert to ready queue
+  readyq_push(p);//insert to ready queue
   p->tmask = 0;
 
   release(&p->lock);
@@ -289,13 +360,62 @@ procnum(void)
   return num;
 }
 
+void
+sched(void)
+{
+  int intena;
+  struct proc *p = myproc();
+
+  if(!holding(&p->lock))
+    panic("sched p->lock");
+  if(mycpu()->noff != 1)
+    panic("sched locks");
+  if(p->state == RUNNING)
+    panic("sched running");
+  if(intr_get())
+    panic("sched interruptible");
+
+  intena = mycpu()->intena;
+  swtch(&p->context, &mycpu()->context);
+  mycpu()->intena = intena;
+}
+
 // Atomically release lock and sleep on chan.
 // Reacquires lock when awakened.
 void
 sleep(void *chan, struct spinlock *lk)
 {
+  struct proc *p = myproc();
+  
+  // Must acquire p->lock in order to
+  // change p->state and then call sched.
+  // Once we hold p->lock, we can be
+  // guaranteed that we won't miss any wakeup
+  // (wakeup locks p->lock),
+  // so it's okay to release lk.
+  if(lk != &p->lock){  //DOC: sleeplock0
+    acquire(&p->lock);  //DOC: sleeplock1
+    release(lk);
+  }
 
+  // Go to sleep.
+  queue* q = findwaitq(chan);
+  if(!q)q = allocwaitq(chan);
+  if(!q){
+    __debug_error("waitq pool is full\n");
+  }
+  waitq_push(q,p);
+  p->state = SLEEPING;
+  sched();
 
+  // Tidy up.
+  p->chan = 0;
+
+  // Reacquire original lock.
+  if(lk != &p->lock){
+    release(&p->lock);
+    acquire(lk);
+  }
 }
 
 // Wake up all processes sleeping on chan.
@@ -303,20 +423,34 @@ sleep(void *chan, struct spinlock *lk)
 void
 wakeup(void *chan)
 {
-
-
+   queue* q = findwaitq(chan);
+   if(q){
+     struct proc* p;
+     while((p = waitq_pop(q))!=NULL){
+       readyq_push(p);
+     }
+     delwaitq(q);
+   }
 }
 
 void
 yield()
 {
-
+  struct proc *p = myproc();
+  acquire(&p->lock);
+  readyq_push(p);
+  p->state = RUNNABLE;
+  sched();
+  release(&p->lock);
 }
 
 void
 exit(int n)
 {
-
+   printf("[exit]exit %d\n",n);
+   while(1){
+   
+   }
 }
 
 

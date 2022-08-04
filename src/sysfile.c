@@ -108,7 +108,7 @@ sys_openat()
   if(dp){
     elock(dp);  
   }
-  printf("[sys openat]open %s\n",path);
+  //printf("[sys openat]open %s\n",path);
   return fd;
 }
 

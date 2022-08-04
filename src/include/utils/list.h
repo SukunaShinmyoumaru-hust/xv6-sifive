@@ -55,7 +55,7 @@ static inline struct list *list_prev(struct list *node) {
 	return node->prev;
 }
 
-static inline struct list *dlist_next(struct list *node) {
+static inline struct list *list_next(struct list *node) {
 	return node->next;
 }
 

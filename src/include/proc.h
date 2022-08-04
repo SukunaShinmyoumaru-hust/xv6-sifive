@@ -11,6 +11,7 @@
 #include "signal.h"
 #include "timer.h"
 #include "cpu.h"
+#include "utils/list.h"
 #include "vma.h"
 
 #define FUTEX_WAIT		0
@@ -146,8 +147,7 @@ struct proc {
   char name[16];               // Process name (debugging)
   int tmask;                    // trace mask
   struct tms proc_tms;
-  struct proc* next;
-  struct proc* prev;
+  struct list dlist;
   struct vma *vma;
   // signal
 	ksigaction_t *sig_act;

@@ -62,6 +62,7 @@ main(unsigned long hartid, unsigned long dtb_pa)
     trapinithart();  // install kernel trap vector, including interrupt handler
     procinit();
     userinit();
+    userinit();
     binit();
     disk_init();
     fs_init();
