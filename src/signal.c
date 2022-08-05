@@ -116,50 +116,6 @@ int sigprocmask(
 	return 0;
 }
 
-void sigframefree(struct sig_frame *head) {
-	while (NULL != head) {
-		struct sig_frame *next = head->next;
-		kfree(head->tf);
-		kfree(head);
-		head = next;
-	}
-}
-
-void sigaction_free(ksigaction_t *head) {
-	while (NULL != head) {
-		ksigaction_t *next = head->next;
-		kfree(head);
-		head = next;
-	}
-}
-
-int sigaction_copy(ksigaction_t **pdst, ksigaction_t const *src) {
-	ksigaction_t *tmp = NULL;
-
-	*pdst = NULL;
-	if (NULL == src) {
-		return 0;
-	}
-
-	while (NULL != src) {
-		// tmp = kmalloc(sizeof(ksigaction_t));
-        tmp = kmalloc(sizeof(ksigaction_t));
-		if (NULL == tmp) {
-			sigaction_free(*pdst);
-			*pdst = NULL;
-			return -1;
-		}
-
-		*tmp = *src;
-		tmp->next = *pdst;
-		*pdst = tmp;
-
-		src = src->next;
-	}
-
-	return 0;
-}
-
 extern char sig_trampoline[];
 extern char sig_handler[];
 extern char default_sigaction[];
@@ -242,6 +198,56 @@ start_handle:
 	// insert sig_frame into proc's sig_frame list 
 	frame->next = p->sig_frame;
 	p->sig_frame = frame;
+}
+
+void sigframefree(struct sig_frame *head) {
+	while (NULL != head) {
+		struct sig_frame *next = head->next;
+		if(next == head)
+		{
+		  __debug_warn("[sigframefree] loop!\n");
+		}
+		__debug_info("[sigframefree] free trapframe %p\n", head->tf);
+		kfree(head->tf);
+		__debug_info("[sigframefree] free %p\n", head);
+		kfree(head);
+		head = next;
+	}
+}
+
+void sigaction_free(ksigaction_t *head) {
+	while (NULL != head) {
+		ksigaction_t *next = head->next;
+		kfree(head);
+		head = next;
+	}
+}
+
+int sigaction_copy(ksigaction_t **pdst, ksigaction_t const *src) {
+	ksigaction_t *tmp = NULL;
+
+	*pdst = NULL;
+	if (NULL == src) {
+		return 0;
+	}
+
+	while (NULL != src) {
+		tmp = kmalloc(sizeof(ksigaction_t));
+		if (NULL == tmp) {
+			__debug_warn("[sigaction_copy] fail to alloc\n");
+			sigaction_free(*pdst);
+			*pdst = NULL;
+			return -1;
+		}
+
+		*tmp = *src;
+		tmp->next = *pdst;
+		*pdst = tmp;
+
+		src = src->next;
+	}
+
+	return 0;
 }
 
 void sigreturn(void) {

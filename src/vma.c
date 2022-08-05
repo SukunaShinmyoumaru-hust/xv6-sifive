@@ -10,22 +10,35 @@
 #include "include/proc.h"
 #include "include/printf.h"
 #include "include/string.h"
+#include "include/riscv.h"
 
 struct vma *vma_list_init(struct proc *p)
 {
+  if(p == NULL)
+  {
+    __debug_warn("[vma_list_init] proc is NULL\n");
+    return NULL;
+  }
   // alloc head
   struct vma *vma = (struct vma*)kmalloc(sizeof(struct vma));
+  if(vma == NULL)
+  {
+    __debug_warn("[vma_list_init] vma kmalloc failed\n");
+    return NULL;
+  }
   vma->next = vma->prev = vma;
   vma->type = NONE;
   p->vma = vma;
-
+  
+  // printf("[vma list init] trapframe map\n");
   // alloc TRAPFRAME
   if(alloc_vma(p, TRAP, TRAPFRAME, PGSIZE, PTE_R | PTE_W , 0, (uint64)p->trapframe) == NULL)
   {
     __debug_warn("[vma_list_init] TRAPFRAME vma init fail\n");
     goto bad;
   }
-
+  
+  // printf("[vma list init] stack map\n");
   // alloc STACK
   if(alloc_vma(p, STACK, PGROUNDDOWN(USER_STACK_BOTTOM - 35 * PGSIZE), 35 * PGSIZE, PTE_R|PTE_W|PTE_U, 1, NULL) == NULL)
   {
@@ -33,13 +46,14 @@ struct vma *vma_list_init(struct proc *p)
     goto bad;
   }
 
+  // printf("[vma list init] mmap map\n");
   // alloc MMAP
   if(alloc_mmap_vma(p, USER_MMAP_START, 0, 0, 0, 0) == NULL)
   {
     __debug_warn("[vma_list_init] mmap vma init fail\n");
     goto bad;
   }
-
+  
   return vma;
 
 bad:
@@ -88,18 +102,12 @@ struct vma *alloc_vma(
   }
 
   struct vma *vma = (struct vma*)kmalloc(sizeof(struct vma));
-  vma->addr = start;
-  vma->sz = sz;
-  vma->end = end;
-  vma->perm = perm;
-  vma->f = NULL;
-  vma->f_off = 0;
-
-  vma->prev = nvma->prev;
-  vma->next = nvma;
-  nvma->prev->next = vma;
-  nvma->prev = vma;
-
+  if(vma == NULL)
+  {
+    __debug_warn("[alloc_vma] vma kmalloc failed\n");
+    return NULL;
+  }
+  
   if(sz != 0)
   {
     if(alloc == 1)
@@ -119,7 +127,19 @@ struct vma *alloc_vma(
       }
     }
   }
+  
+  vma->addr = start;
+  vma->sz = sz;
+  vma->end = end;
+  vma->perm = perm;
+  vma->f = NULL;
+  vma->f_off = 0;
   vma->type = type;
+
+  vma->prev = nvma->prev;
+  vma->next = nvma;
+  nvma->prev->next = vma;
+  nvma->prev = vma;
   return vma;
 
 bad:
@@ -295,6 +315,10 @@ struct vma *alloc_load_vma(struct proc *p, uint64 addr, uint64 sz, int perm)
 int free_vma_list(struct proc *p)
 {
   struct vma *vma_head = p->vma;
+  if(vma_head == NULL)
+  {
+    return 1;
+  }
   struct vma *vma = vma_head->next;
   while(vma != vma_head)
   {
@@ -315,6 +339,7 @@ int free_vma_list(struct proc *p)
     kfree(vma->prev);
   }
   kfree(vma);
+  p->vma = NULL;
   return 1;
 }
 
@@ -335,24 +360,135 @@ int free_vma(struct proc *p, uint64 addr, uint64 len)
   return 1;
 }
 
-void vma_copy(struct proc *np, struct vma *head)
+struct vma* vma_copy(struct proc *np, struct vma *head)
 {
   struct vma *nvma_head = (struct vma *)kmalloc(sizeof(struct vma));
+  if(nvma_head == NULL)
+  {
+    __debug_warn("[vma_copy] nvma_head kmalloc failed\n");
+    goto err;
+  }
   nvma_head->next = nvma_head->prev = nvma_head;
   nvma_head->type = NONE;
+  np->vma = nvma_head;
   struct vma *pvma = head->next;
   while(pvma != head)
   {
-    struct vma *nvma = (struct vma *)kmalloc(sizeof(struct vma));
-    memmove(nvma, pvma, sizeof(struct vma));
-    nvma->next = nvma->prev = NULL;
-    nvma->prev = nvma_head->prev;
-    nvma->next = nvma_head;
-    nvma_head->prev->next = nvma;
-    nvma_head->prev = nvma;
+    struct vma *nvma = NULL;
+    if(pvma->type == TRAP)
+    {
+      if((nvma = alloc_vma(np, TRAP, TRAPFRAME, PGSIZE, PTE_R | PTE_W , 0, (uint64)np->trapframe)) == NULL)
+      {
+        __debug_warn("[vma_list_init] TRAPFRAME vma init fail\n");
+        goto err;
+      }
+    }
+    else
+    {
+      nvma = (struct vma *)kmalloc(sizeof(struct vma));
+      if(nvma == NULL)
+      {
+        __debug_warn("[vma_copy] nvma kmalloc failed\n");
+        goto err;
+      }
+      memmove(nvma, pvma, sizeof(struct vma));
+      nvma->next = nvma->prev = NULL;
+      nvma->prev = nvma_head->prev;
+      nvma->next = nvma_head;
+      nvma_head->prev->next = nvma;
+      nvma_head->prev = nvma;
+    }
     pvma = pvma->next;
   }
+  
+  return nvma_head;
+  
+err:
+  np->vma = NULL;
+  __debug_warn("[vm_copy] failed\n");
+  free_vma_list(np);
+  return NULL;
 }
+
+int vma_deep_mapping(pagetable_t old, pagetable_t new, const struct vma *vma)
+{
+  uint64 start = vma->addr;
+  pte_t *pte;
+  uint64 pa;
+  char *mem;
+  long flags;
+  
+  while(start < vma->end)
+  {
+    if((pte = walk(old, start, 0)) == NULL)
+    {
+      panic("uvmcopy: pte should exist");
+    }
+    if((*pte & PTE_V) == 0)
+    {
+      panic("uvmcopy: page not present");
+    }
+    pa = PTE2PA(*pte);
+    flags = PTE_FLAGS(*pte);
+
+    mem = (char *)allocpage();
+
+    if(mem == NULL)
+    {
+      goto err;
+    }
+
+    memmove(mem, (char *)pa, PGSIZE);
+
+    if(mappages(new, start, PGSIZE, (uint64)mem, flags) != 0)
+    {
+      __debug_warn("[vma_deep_mapping] start = %p, end = %p\n", vma->addr, vma->end);
+      freepage(mem);
+      goto err;
+    }
+    start += PGSIZE;
+  }
+  pa = walkaddr(new, vma->addr);
+  return 0;
+  
+err:
+  vmunmap(new, vma->addr, (start - vma->addr) / PGSIZE, 1);
+  return -1;
+}
+
+int vma_shallow_mapping(pagetable_t old, pagetable_t new, const struct vma *vma)
+{
+  uint64 start = vma->addr;
+  uint64 pa;
+  pte_t *pte;
+  long flags;
+
+  while(start < vma->end)
+  {
+    if((pte = walk(old, start, 0)) == NULL)
+    {
+      panic("uvmcopy: pte should exist");
+    }
+    if((*pte & PTE_V) == 0)
+    {
+      panic("uvmcopy: page not present");
+    }
+    pa = PTE2PA(*pte);
+    flags = PTE_FLAGS(*pte);
+
+    if(mappages(new, start, PGSIZE, pa, flags) != 0)
+    {
+      goto err;
+    }
+    start +=PGSIZE;
+  }
+  return 0;
+
+err:
+  vmunmap(new, vma->addr, (start - vma->addr) / PGSIZE, 1);
+  return -1;
+}
+
 
 static char * vma_type[] = {
   [NONE]  "NONE",

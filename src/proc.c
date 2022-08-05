@@ -16,7 +16,7 @@
 #include "include/vma.h"
 #include "include/pm.h"
 
-#define WAITQ_NUM 10
+#define WAITQ_NUM 100
 
 extern pagetable_t kernel_pagetable;
 extern void swtch(struct context*, struct context*);
@@ -26,8 +26,8 @@ struct proc *initproc;
 struct proc *runproc;
 queue readyq;
 struct spinlock waitq_pool_lk;
-queue waitq_pool[10];
-int waitq_valid[10];
+queue waitq_pool[WAITQ_NUM];
+int waitq_valid[WAITQ_NUM];
 int firstuserinit;
 
 int nextpid = 1;
@@ -197,12 +197,17 @@ freeproc(struct proc *p)
   sigframefree(p->sig_frame);
 }
 
+
+void smallcheck(int n,pagetable_t pagetable){
+  __debug_warn("check%d pagetable:%p pa:%p\n",n,pagetable,kwalkaddr1(pagetable,0xea));
+}
+
 // Look in the process table for an UNUSED proc.
 // If found, initialize state required to run in the kernel,
 // and return with p->lock held.
 // If there are no free procs, or a memory allocation fails, return 0.
 struct proc*
-allocproc(void)
+allocproc(struct proc *pp, int thread_create)
 {
   struct proc *p;
 
@@ -235,27 +240,28 @@ found:
   
   // An empty user page table.
   // And an identical kernel page table for this proc.
-  if ((proc_pagetable(p)) == NULL) {
+  if ((proc_pagetable(p, pp, thread_create)) == NULL) {
     freeproc(p);
     release(&p->lock);
     return NULL;
   }
-
   p->ofile = kmalloc(NOFILE*sizeof(struct file*));
+  
   if(!p->ofile){
     panic("proc ofile init\n");
   }
-
+  
   for(int fd = 0; fd < NOFILE; fd++){
     p->ofile[fd] = NULL;
   }
-  memset(p->ofile, 0, PGSIZE);
+  
+  memset(p->ofile, 0, NOFILE*sizeof(struct file*));
 /*
   for(int i = 0; i < MMAPNUM; ++i){
     p->mmap_pool[i].used = 0;
   }
   */
-
+  
   // Set up new context to start executing at forkret,
   // which returns to user space.
   memset(&p->context, 0, sizeof(p->context));
@@ -271,7 +277,8 @@ found:
   for (int i = 0; i < SIGSET_LEN; i ++) {
 	p->sig_pending.__val[i] = 0;
   }
-	p->killed = 0;
+  p->killed = 0;
+  
   return p;
 }
 
@@ -279,7 +286,7 @@ found:
 // Create a user page table for a given process,
 // with no user memory, but with trampoline pages.
 pagetable_t
-proc_pagetable(struct proc *p)
+proc_pagetable(struct proc *p, struct proc *pp, int thread_create)
 {
   pagetable_t pagetable;
 
@@ -289,18 +296,63 @@ proc_pagetable(struct proc *p)
     return NULL;
 
   p->pagetable = pagetable;
-
-  if(vma_list_init(p) == NULL)
+  //printf("[proc pagetable]alloc pagetable:%p\n",p->pagetable);
+  if(pp == NULL)
   {
-    __debug_warn("[proc_pagetable] vma list init failed\n");
-    p->pagetable = NULL;
-    freewalk(pagetable);
-    return NULL;
+    if(vma_list_init(p) == NULL)
+    {
+      //__debug_warn("[proc_pagetable] vma list init failed\n");
+      freewalk(pagetable);
+      p->pagetable = NULL;
+      return NULL;
+    }
   }
-  
+  else
+  {
+    struct vma *nvma = NULL;
+    if((nvma = vma_copy(p, pp->vma)) == NULL)
+    {
+      //__debug_warn("[proc_pagetable] vma copy fail\n");
+      freepage(pagetable);
+      p->pagetable = NULL;
+      return NULL;
+    }
+    nvma = nvma->next;
+    if(thread_create)
+    {
+      while(nvma != p->vma)
+      {
+        if(nvma->type != TRAP && vma_shallow_mapping(pp->pagetable, p->pagetable, nvma) < 0)
+        {
+          //__debug_warn("[proc_pagetable] vma shallow mapping fail\n");
+          free_vma_list(p);
+          freepage(pagetable);
+          p->pagetable = NULL;
+          return NULL;
+        }
+        nvma = nvma->next;
+      }
+    }
+    else
+    {
+      while(nvma != p->vma)
+      {
+        if(nvma->type != TRAP && vma_deep_mapping(pp->pagetable, p->pagetable, nvma) < 0)
+        {
+          //__debug_warn("[proc_pagetable] vma deep mapping fail\n");
+          free_vma_list(p);
+          freepage(pagetable);
+          p->pagetable = NULL;
+          return NULL;
+        }
+        nvma = nvma->next;
+      }
+    }
+  }
+  //print_vma_info(p);
+  //__debug_info("[proc_pagetable] successfully return\n");
   return pagetable;
 }
-
 
 // Free a process's page table, and free the
 // physical memory it refers to.
@@ -315,7 +367,7 @@ userinit()
 {
   struct proc *p;
 
-  p = allocproc();
+  p = allocproc(0, 0);
   if(firstuserinit){
     initproc = p;
     firstuserinit = 0;
@@ -325,7 +377,7 @@ userinit()
     initproc = p;
   }
   alloc_load_vma(p, (uint64) 0, initcodesize, PTE_R|PTE_W|PTE_X|PTE_U);
-  print_vma_info(p);
+  //print_vma_info(p);
   copyout(p->pagetable,0,initcode,initcodesize);
   
 
@@ -342,6 +394,90 @@ userinit()
   __debug_info("userinit\n");
 }
 
+int clone(uint64 flag, uint64 stack, uint64 ptid, uint64 tls, uint64 ctid) {
+  int i, pid;
+  struct proc *np;
+  struct proc *p = myproc();
+  
+  if((flag & CLONE_THREAD) && (flag & CLONE_VM))
+  {
+    // Allocate process.
+    if((np = allocproc(p, 1)) == NULL){
+      return -1;
+    }
+    
+    // copy saved user registers.
+    *(np->trapframe) = *(p->trapframe);
+    np->trapframe->tp = tls;
+    np->trapframe->sp = stack;
+    if(ptid != 0)
+    {
+      copyout(p->pagetable, ptid, (char *)&np->pid, sizeof(int));
+    } 
+  }
+  else
+  {
+    //__debug_info("[clone]enter\n");
+    // Allocate process.
+    if((np = allocproc(p, 0)) == NULL){
+      return -1;
+    }
+    // copy saved user registers.
+    *(np->trapframe) = *(p->trapframe);
+    if(stack != 0)
+    {
+      p->trapframe->sp = stack;
+    }
+  }
+  
+  // signal copy	
+  sigaction_copy(&np->sig_act, p->sig_act);
+  np->sig_frame = p->sig_frame;
+  for (int i = 0; i < SIGSET_LEN; i++) {
+    np->sig_pending.__val[i] = p->sig_pending.__val[i];
+  }
+  
+  np->sz = p->sz;
+
+  // copy tracing mask from parent.
+  np->tmask = p->tmask;
+
+  // Cause fork to return 0 in the child.
+  np->trapframe->a0 = 0;
+  
+
+  // increment reference counts on open file descriptors.
+  for(i = 0; i < NOFILE; i++)
+    if(p->ofile[i])
+      np->ofile[i] = filedup(p->ofile[i]);
+  np->cwd = edup(p->cwd);
+  
+  
+  // np->parent = p;
+  allocparent(p, np);
+
+  safestrcpy(np->name, p->name, sizeof(p->name));
+
+  pid = np->pid;
+  np->state = RUNNABLE;
+  readyq_push(np);
+
+  if(flag & CLONE_CHILD_SETTID){
+    np->set_child_tid = ctid;
+
+  }
+  if(flag & CLONE_CHILD_CLEARTID){
+    np->clear_child_tid = ctid;
+  }
+  
+  p->killed = np->killed;
+  
+  
+  release(&np->lock);
+  //__debug_info("epc:%p\n",p->trapframe->epc);
+  //__debug_info("[clone] successfully clone\n");
+  return pid;
+}
 
 // A fork child's very first scheduling by scheduler()
 // will swtch to forkret.

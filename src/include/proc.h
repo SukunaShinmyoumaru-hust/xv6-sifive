@@ -150,12 +150,12 @@ struct proc {
   struct list dlist;
   struct vma *vma;
   // signal
-	ksigaction_t *sig_act;
-	__sigset_t sig_set;
-	__sigset_t sig_pending;
-	struct sig_frame *sig_frame;
-  int* set_child_tid;
-  int* clear_child_tid;
+  ksigaction_t *sig_act;
+  __sigset_t sig_set;
+  __sigset_t sig_pending;
+  struct sig_frame *sig_frame;
+  uint64 set_child_tid;
+  uint64 clear_child_tid;
   struct robust_list_head *robust_list;
 };
 
@@ -166,7 +166,7 @@ void            exit(int);
 int             fork(void);
 void            forkret(void);
 int             growproc(int);
-pagetable_t     proc_pagetable(struct proc *);
+pagetable_t     proc_pagetable(struct proc *p, struct proc *pp, int thread_create);
 // void            proc_freepagetable(pagetable_t, uint64);
 void            proc_freepagetable(struct proc *p);
 int             kill(int pid,int sig);
@@ -187,7 +187,7 @@ uint64          procnum(void);
 struct proc*    getparent(struct proc* child);
 void            allocparent(struct proc* parent,struct proc* child);
 void            test_proc_init(int);
-int             clone(uint64 flag, uint64 stack,int* tls);
+int             clone(uint64 flag, uint64 stack, uint64 ptid, uint64 tls, uint64 ctid);
 void            proc_tick(void);
 struct proc*    findproc(int pid);
 int             do_futex(int* uaddr,int futex_op,int val,ktime_t *timeout,int *addr2,int val2,int val3);

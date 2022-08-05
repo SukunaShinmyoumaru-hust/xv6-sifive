@@ -66,10 +66,10 @@ main(unsigned long hartid, unsigned long dtb_pa)
     fs_init();
     devinit();
     fileinit();
-    userinit();
-    userinit();
-    userinit();
-    userinit();
+    
+    //for(int j =0;j<68;j++){
+      userinit();
+    //}
     __sync_synchronize();
 
     for(int i = 1; i < NCPU; i++) {

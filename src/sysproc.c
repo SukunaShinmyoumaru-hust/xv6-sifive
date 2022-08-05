@@ -42,6 +42,22 @@ sys_getppid(void){
   else return 0;
 }
 
+uint64
+sys_clone(void)
+{
+  uint64 flag, stack, ptid, ctid, tls;
+  if (argaddr(0, &flag) < 0) 
+  	return -1;
+  if (argaddr(1, &stack) < 0) 
+	return -1;
+  if(argaddr(2, &ptid) < 0)
+  	return -1;
+  if(argaddr(3, &tls) < 0)
+    return -1;
+  if(argaddr(4, &ctid) < 0)
+    return -1;
+  return clone(flag, stack, ptid, tls, ctid);
+}
 
 uint64
 sys_wait4()

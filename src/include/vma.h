@@ -41,8 +41,11 @@ struct vma *alloc_stack_vma(struct proc *p, uint64 addr, int perm);
 struct vma *alloc_addr_heap_vma(struct proc *p, uint64 addr, int perm);
 struct vma *alloc_sz_heap_vma(struct proc *p, uint64 sz, int perm);
 struct vma *alloc_load_vma(struct proc *p, uint64 addr, uint64 sz, int perm);
+struct vma *vma_copy(struct proc *np, struct vma *head);
 int free_vma_list(struct proc *p);
 int free_vma(struct proc *p, uint64 addr, uint64 len);
 void print_vma_info(struct proc* p);
+int vma_deep_mapping(pagetable_t old, pagetable_t new, const struct vma *vma);
+int vma_shallow_mapping(pagetable_t old, pagetable_t new, const struct vma *vma);
 #endif
 

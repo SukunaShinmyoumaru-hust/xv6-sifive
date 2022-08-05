@@ -86,8 +86,7 @@ loadelf(struct proc* p, struct dirent *ep,struct elfhdr* elf,struct proghdr* phd
         return -1;
       }
       uint64 load_start = ph.vaddr+base;
-      uint64 load_end = ph.vaddr+ph.memsz+base;
-      if(alloc_load_vma(p, load_start, load_end, PTE_R|PTE_W|PTE_X|PTE_U)== NULL){
+      if(alloc_load_vma(p, load_start, ph.memsz, PTE_R|PTE_W|PTE_X|PTE_U)== NULL){
         __debug_warn("[exec]grow space failed\n");
         return -1;
       }
@@ -192,7 +191,7 @@ exec(char *path, char **argv, char **env)
   np->trapframe = allocpage();
   memcpy(np->trapframe,p->trapframe,sizeof(struct trapframe));
 
-  if ((proc_pagetable(np)) == NULL) {
+  if ((proc_pagetable(np, 0, 0)) == NULL) {
     goto bad;
   }
 
