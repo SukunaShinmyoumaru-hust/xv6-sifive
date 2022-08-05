@@ -46,7 +46,13 @@ sys_getppid(void){
 uint64
 sys_wait4()
 {
-  return 0;
+  uint64 addr;
+  int pid;
+  if(argint(0, &pid) < 0)
+    return -1;
+  if(argaddr(1, &addr) < 0)
+    return -1;
+  return wait4pid(pid,addr);
 }
 
 

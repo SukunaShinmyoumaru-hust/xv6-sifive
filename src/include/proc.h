@@ -184,6 +184,8 @@ void            wakeup(void*);
 void            yield(void);
 void            procdump(void);
 uint64          procnum(void);
+struct proc*    getparent(struct proc* child);
+void            allocparent(struct proc* parent,struct proc* child);
 void            test_proc_init(int);
 int             clone(uint64 flag, uint64 stack,int* tls);
 void            proc_tick(void);

@@ -11,6 +11,7 @@
 extern int openat(int dirfd, char* path, int flags, int mode);
 extern int write(int fd, const void *buf, int len);
 extern int read(int fd, void *buf, int len);
+extern int wait4(int pid,int* status);
 extern int exit(int n);
 extern int getpid();
 extern int getppid();

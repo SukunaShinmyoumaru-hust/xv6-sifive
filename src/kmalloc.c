@@ -235,7 +235,7 @@ void kfree(void *addr) {
 	if (TABLE_END == node->avail) {
 		node->next = alloc->list;
 		alloc->list = node;
-		__debug_info("kfree pickup\n");
+		//__debug_info("kfree pickup\n");
 	}
 
 	// node should be on alloc->list 

@@ -9,6 +9,7 @@
 #include "include/kalloc.h"
 #include "include/printf.h"
 #include "include/string.h"
+#include "include/copy.h"
 #include "include/file.h"
 #include "include/trap.h"
 #include "include/vm.h"
@@ -22,7 +23,6 @@ extern void swtch(struct context*, struct context*);
 struct proc proc[NPROC];
 
 struct proc *initproc;
-struct proc *lastproc;
 struct proc *runproc;
 queue readyq;
 struct spinlock waitq_pool_lk;
@@ -318,12 +318,11 @@ userinit()
   p = allocproc();
   if(firstuserinit){
     initproc = p;
-    lastproc = p;
-    firstuserinit = 1;
+    firstuserinit = 0;
   }
   else{
-    p->parent = lastproc;
-    lastproc = p;
+    allocparent(p,initproc);
+    initproc = p;
   }
   alloc_load_vma(p, (uint64) 0, initcodesize, PTE_R|PTE_W|PTE_X|PTE_U);
   print_vma_info(p);
@@ -460,23 +459,27 @@ getparent(struct proc* child){
   return child->parent;
 }
 
+//need release return proc lock
 struct proc*
-findchild(struct proc* p,int (*cond)(struct proc*)){
+findchild(struct proc* p,int (*cond)(struct proc*,int),int* pid){
+   int kidpid = -1;
    for(struct proc* np = proc; np < &proc[NPROC]; np++){
       // this code uses np->parent without holding np->lock.
       // acquiring the lock first would cause a deadlock,
       // since np might be an ancestor, and we already hold p->lock.
-      if(np->parent == p){
+      if(np->parent == p && cond(np,*pid)){
         // np->parent can't change between the check and the acquire()
         // because only the parent changes it, and we're the parent.
         acquire(&np->lock);
-        if(cond(np)){
-          release(&np->lock);
+        kidpid = np->pid; 
+        if(np->state == ZOMBIE){
+          *pid = kidpid;
           return np;
         }
         release(&np->lock);
       }
    }
+   *pid = kidpid;
    return NULL;
 }
 
@@ -518,18 +521,52 @@ yield()
 }
 
 
+int zombiecond(struct proc* p,int pid){
+  return (pid==-1||p->pid == pid);
+}
+
 // Wait for a child process to exit and return its pid.
 // Return -1 if this process has no children.
 int
-wait(uint64 addr)
+wait4pid(int pid,uint64 addr)
 {
+  int kidpid;
+  struct proc *p = myproc();
+  struct proc* child;
+  
+  // hold p->lock for the whole time to avoid lost
+  // wakeups from a child's exit().
+  acquire(&p->lock);
+  while(1){
+    kidpid = pid;
+    child = findchild(p,zombiecond,&kidpid);
+    if(child != NULL){
+      p->proc_tms.cstime += child->proc_tms.stime + child->proc_tms.cstime;
+      p->proc_tms.cutime += child->proc_tms.utime + child->proc_tms.cutime;
+      if(addr != 0 && copyout(p->pagetable,addr, (char *)&child->xstate, sizeof(child->xstate)) < 0) {
+        release(&child->lock);
+        release(&p->lock);
+        return -1;
+      }
+      freeproc(child);
+      release(&child->lock);
+      release(&p->lock);
+      return kidpid;
+    }
+    if(kidpid == -1||p->killed){
+      __debug_warn("[wait4pid]no kid to wait\n");
+      release(&p->lock);
+      return -1;
+    }
+    sleep(p, &p->lock);  //DOC: wait-sleep
+  }
+  release(&p->lock);
   return 0;
 }
 
 void
 exit(int n)
 {
-  printf("[exit]exit %d\n",n);
   struct proc *p = myproc();
 
   //if(p == initproc)

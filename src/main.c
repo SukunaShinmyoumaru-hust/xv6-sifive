@@ -68,6 +68,8 @@ main(unsigned long hartid, unsigned long dtb_pa)
     fileinit();
     userinit();
     userinit();
+    userinit();
+    userinit();
     __sync_synchronize();
 
     for(int i = 1; i < NCPU; i++) {
