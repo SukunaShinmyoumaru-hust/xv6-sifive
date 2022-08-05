@@ -61,13 +61,13 @@ main(unsigned long hartid, unsigned long dtb_pa)
     timerinit();     // init a lock for timer
     trapinithart();  // install kernel trap vector, including interrupt handler
     procinit();
-    userinit();
-    userinit();
     binit();
     disk_init();
     fs_init();
     devinit();
     fileinit();
+    userinit();
+    userinit();
     __sync_synchronize();
 
     for(int i = 1; i < NCPU; i++) {

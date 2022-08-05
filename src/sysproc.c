@@ -44,6 +44,13 @@ sys_getppid(void){
 
 
 uint64
+sys_wait4()
+{
+  return 0;
+}
+
+
+uint64
 sys_exit()
 {
   int n;

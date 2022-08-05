@@ -36,6 +36,7 @@ entry	rt_sigreturn	139
 entry	getpid 	172
 entry	getppid	173
 entry	execve		221
+entry	wait4		260
 
 echo "};">>$kfuntemp;
 echo "};">>$kstrtemp;

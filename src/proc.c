@@ -22,11 +22,13 @@ extern void swtch(struct context*, struct context*);
 struct proc proc[NPROC];
 
 struct proc *initproc;
+struct proc *lastproc;
 struct proc *runproc;
 queue readyq;
 struct spinlock waitq_pool_lk;
 queue waitq_pool[10];
 int waitq_valid[10];
+int firstuserinit;
 
 int nextpid = 1;
 int procfirst = 1;
@@ -52,6 +54,7 @@ procinit(){
   initproc = NULL;
   queue_init(&readyq,NULL);
   waitq_pool_init();
+  firstuserinit = 1;
   __debug_info("procinit\n");
 }
 
@@ -156,6 +159,7 @@ allocpid() {
   return pid;
 }
 
+
 // free a proc structure and the data hanging from it,
 // including user pages.
 // p->lock must be held.
@@ -163,7 +167,7 @@ static void
 freeproc(struct proc *p)
 {
   if(p->trapframe)
-    kfree((void*)p->trapframe);
+    freepage((void*)p->trapframe);
   p->trapframe = 0;
   if(p->ofile)
     kfree((void*)p->ofile);
@@ -312,7 +316,15 @@ userinit()
   struct proc *p;
 
   p = allocproc();
-  initproc = p;
+  if(firstuserinit){
+    initproc = p;
+    lastproc = p;
+    firstuserinit = 1;
+  }
+  else{
+    p->parent = lastproc;
+    lastproc = p;
+  }
   alloc_load_vma(p, (uint64) 0, initcodesize, PTE_R|PTE_W|PTE_X|PTE_U);
   print_vma_info(p);
   copyout(p->pagetable,0,initcode,initcodesize);
@@ -326,7 +338,7 @@ userinit()
   p->state = RUNNABLE;
   readyq_push(p);//insert to ready queue
   p->tmask = 0;
-
+  p->cwd = ename(NULL,"/",0);
   release(&p->lock);
   __debug_info("userinit\n");
 }
@@ -427,10 +439,71 @@ wakeup(void *chan)
    if(q){
      struct proc* p;
      while((p = waitq_pop(q))!=NULL){
+       p->state = RUNNABLE;
        readyq_push(p);
      }
      delwaitq(q);
    }
+}
+
+
+void
+allocparent(struct proc* parent,struct proc* child){
+  child->parent = parent;
+}
+
+
+// get p's parent
+// Caller must hold child->lock.
+struct proc*
+getparent(struct proc* child){
+  return child->parent;
+}
+
+struct proc*
+findchild(struct proc* p,int (*cond)(struct proc*)){
+   for(struct proc* np = proc; np < &proc[NPROC]; np++){
+      // this code uses np->parent without holding np->lock.
+      // acquiring the lock first would cause a deadlock,
+      // since np might be an ancestor, and we already hold p->lock.
+      if(np->parent == p){
+        // np->parent can't change between the check and the acquire()
+        // because only the parent changes it, and we're the parent.
+        acquire(&np->lock);
+        if(cond(np)){
+          release(&np->lock);
+          return np;
+        }
+        release(&np->lock);
+      }
+   }
+   return NULL;
+}
+
+// Pass p's abandoned children to init.
+// Caller must hold p->lock.
+void
+reparent(struct proc *p)
+{
+  struct proc *pp;
+
+  for(pp = proc; pp < &proc[NPROC]; pp++){
+    // this code uses pp->parent without holding pp->lock.
+    // acquiring the lock first could cause a deadlock
+    // if pp or a child of pp were also in exit()
+    // and about to try to lock p.
+    if(pp->parent == p){
+      // pp->parent can't change between the check and the acquire()
+      // because only the parent changes it, and we're the parent.
+      acquire(&pp->lock);
+      pp->parent = initproc;
+      // we should wake up init here, but that would require
+      // initproc->lock, which would be a deadlock, since we hold
+      // the lock on one of init's children (pp). this is why
+      // exit() always wakes init (before acquiring any locks).
+      release(&pp->lock);
+    }
+  }
 }
 
 void
@@ -444,13 +517,50 @@ yield()
   release(&p->lock);
 }
 
+
+// Wait for a child process to exit and return its pid.
+// Return -1 if this process has no children.
+int
+wait(uint64 addr)
+{
+  return 0;
+}
+
 void
 exit(int n)
 {
-   printf("[exit]exit %d\n",n);
-   while(1){
-   
-   }
+  printf("[exit]exit %d\n",n);
+  struct proc *p = myproc();
+
+  //if(p == initproc)
+    //panic("init exiting");
+
+  // Close all open files.
+  for(int fd = 0; fd < NOFILE; fd++){
+    if(p->ofile[fd]){
+      struct file *f = p->ofile[fd];
+      fileclose(f);
+      p->ofile[fd] = 0;
+    }
+  }
+
+  eput(p->cwd);
+  p->cwd = 0;
+  wakeup(p);
+  acquire(&p->lock);
+  wakeup(getparent(p));
+  reparent(p);
+  
+  p->xstate = n;
+  p->state = ZOMBIE;
+
+  // p->killed = SIGTERM;
+  // Jump into the scheduler, never to return.
+  sched();
+  panic("zombie exit");
+  while(1){
+  
+  }
 }
 
 
