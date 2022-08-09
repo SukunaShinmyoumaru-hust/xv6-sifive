@@ -17,7 +17,6 @@ endif
 OBJS += \
 	$K/entry.o \
 	$K/bio.o \
-	$K/copy.o \
 	$(DISK) \
 	$K/ramdisk.o \
 	$K/spi.o \
@@ -26,8 +25,8 @@ OBJS += \
 	$K/disk.o \
 	$K/string.o \
 	$K/intr.o \
-	$K/cpu.o \
 	$K/image.o \
+	$K/proc.o \
 	$K/fat32.o \
 	$K/pipe.o \
 	$K/file.o \
@@ -47,12 +46,17 @@ OBJS += \
 	$K/main.o \
 	$K/kernelvec.o \
 	$K/trap.o \
-	$K/proc.o \
-	$K/vma.o\
+	$K/copy.o \
+	$K/cpu.o \
+	$K/vma.o \
+	$K/mmap.o \
 	$K/uarg.o \
 	$K/exec.o \
+	$K/uname.o\
 	$K/sysfile.o \
+	$K/systime.o \
 	$K/sysproc.o \
+	$K/syslog.o \
 	$K/syssig.o \
 	$K/syscall.o
 
@@ -85,15 +89,15 @@ LDFLAGS = -z max-page-size=4096
 	
 # $K/link_app.o:fs.img
 
-$K/kernel:sys $(OBJS) $(LINKER)
+$K/kernel:$K/syscall.c $(OBJS) $(LINKER)
 	@$(LD) $(LDFLAGS) -T $(LINKER) -o $K/kernel $(OBJS)
 	@$(OBJDUMP) -S $K/kernel > $K/kernel.asm
 	@$(OBJDUMP) -t $K/kernel | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $K/kernel.sym
 
 
-$K/bin.S:$U/_sacrifice $U/initcode
+$K/bin.S:$U/initcode
 
-sys:
+$K/syscall.c:
 	./syscall/sys.sh
 
 $U/initcode:$U/initcode.S
@@ -107,14 +111,14 @@ clean:
 	*/*.o */*.d */*.asm */*.sym src/include/sysnum.h src/syscall.c \
 	$U/_* $U/initcode $U/usys.S $K/kernel	
 
-ULIB = $U/usys.o $U/printf.o
+ULIB = $U/usys.o $U/printf.o $U/lua_test.o $U/lmbench_test.o $U/busybox_test.o
 
 _%: %.o $(ULIB)
 	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $@ $^
 	$(OBJDUMP) -S $@ > $*.asm
 	$(OBJDUMP) -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $*.sym
 
-$U/usys.S : sys
+$U/usys.S : $K/syscall.c
 
 $U/usys.o : $U/usys.S
 	$(CC) $(CFLAGS) -c -o $U/usys.o $U/usys.S
@@ -163,7 +167,7 @@ qemu-gdb: $K/kernel .gdbinit
 	@echo "*** Now run 'gdb' in another window." 1>&2
 	$(QEMU) $(QEMUOPTS) -S $(QEMUGDB)
 
-commit?=clone
+commit?=fix_getdents64
 
 add:
 	git remote add origin https://gitlab.eduxiji.net/Cty/oskernrl2022-rv6.git
@@ -172,4 +176,8 @@ push:
 	git add .
 	git commit -m  "$(commit)"
 	git push origin master
+
+
+
+
 

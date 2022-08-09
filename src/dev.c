@@ -18,6 +18,8 @@ struct devsw devsw[NDEV];
 
 extern char sacrifice_start[];
 extern uint64 sacrifice_size;
+extern char localtime[];
+extern uint64 localtime_size;
 
 int devinit()
 {
@@ -28,7 +30,11 @@ int devinit()
   ep = create(NULL,"/etc/passwd", T_FILE, 0);
   eunlock(ep);
   eput(ep);
-  ep = create(NULL,"/sacrifice",T_FILE,0);
+  ep = create(NULL,"/etc/localtime", T_FILE, 0);
+  ewrite(ep, 0, (uint64)localtime, 0, localtime_size);
+  eunlock(ep);
+  eput(ep);
+  ep = create(NULL,"/mytest.sh",T_FILE,0);
   ewrite(ep, 0, (uint64)sacrifice_start, 0, sacrifice_size);
   eunlock(ep);
   eput(ep);
@@ -97,20 +103,27 @@ int
 consoleread(int user_dst,uint64 addr,int n){
   char readbuf[CONSOLE_BUF_LEN];
   int ret = 0;
-  while(n){
+  int interp = 0;
+  while(n&&!interp){
     int len = MIN(n,CONSOLE_BUF_LEN);
-    for(int i=0;i<len;i++){
+    int i;
+    for(i=0;i<len;i++){
       char c = 0;
       while((c=sbi_console_getchar())==255);
       c = c==13?10:c;
       readbuf[i] = c;
       consputc(c);
+      if(c == 10){
+        interp = 1;
+        break;
+      }
     }
-    if(either_copyout(user_dst,addr,readbuf,n)<0){
+    if(either_copyout(user_dst,addr,readbuf,i)<0){
       return ret;
     }
-    n -= len;
-    ret += len;
+    n -= i;
+    ret += i;
+    addr += i;
   }
   return ret;
 }
@@ -121,16 +134,37 @@ consolewrite(int user_dst,uint64 addr,int n){
   int ret = 0;
   while(n){
     int len = MIN(n,CONSOLE_BUF_LEN);
-    if(either_copyin(user_dst,writebuf,addr,n)<0){
-      return 0;
+    if(either_copyin(user_dst,writebuf,addr,len)<0){
+      return ret;
     }
     for(int i=0;i<len;i++){
       consputc(writebuf[i]);
     }
     n -= len;
     ret += len;
+    addr += len;
   }
   return ret;
 }
 
+int 
+devkstat(struct devsw* mydev, struct kstat* st){
+    st->st_dev = mydev-devsw;
+    st->st_size = 0;
+    st->st_blksize = 0;
+    st->st_blocks = 0;
+    st->st_atime_nsec = 0;
+    st->st_atime_sec = 0;
+    st->st_ctime_nsec = 0;
+    st->st_ctime_sec = 0;
+    st->st_mtime_nsec = 0;
+    st->st_mtime_sec = 0;
+    st->st_uid = 0;
+    st->st_gid = 0;
+    st->st_rdev = 0;
+    st->st_nlink = 1;
+    st->st_ino = 0;
+    st->st_mode = 0;
+  return 0;
+}
 

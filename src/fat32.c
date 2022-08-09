@@ -988,11 +988,11 @@ static struct dirent *lookup_path(struct dirent* env,char *path, int parent, cha
             eput(entry);
             return NULL;
         }
-
         if (parent && *path == '\0') {
             eunlock(entry);
             return entry;
         }
+        
         if ((next = dirlookup(entry, name, 0)) == 0) {
             eunlock(entry);
             eput(entry);
@@ -1054,9 +1054,8 @@ void ekstat(struct dirent *de, struct kstat *st)
     st->st_nlink = 1;
     st->st_ino = hashpath(de->filename);
     st->st_mode = 0;
-    if(de->attribute|ATTR_DIRECTORY){
-      st->st_mode |= S_IFDIR;
-    }
+    st->st_mode = (de->attribute & ATTR_DIRECTORY) ? S_IFDIR : S_IFREG;
+    st->st_mode |= 0x1ff;
 }
 
 
@@ -1127,13 +1126,13 @@ get_parent_name(char *path, char *pname, char *name)
   strncpy(name, path + len2 + 1, len - len2 + 1);
 }
 
+
 struct dirent*
 create(struct dirent* env, char *path, short type, int mode)
 {
   struct dirent *ep, *dp;
   char name[FAT32_MAX_FILENAME + 1];
   char pname[FAT32_MAX_FILENAME + 1];
-
   if (type == T_DIR) {
     mode = ATTR_DIRECTORY;
   } else if (mode & O_RDONLY) {

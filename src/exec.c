@@ -7,6 +7,7 @@
 #include"include/vm.h"
 #include"include/pm.h"
 #include"include/kalloc.h"
+#include"include/file.h"
 #include"include/string.h"
 #define SELF_LOAD 
 
@@ -153,6 +154,7 @@ ustackpushstr(pagetable_t pagetable,uint64* ustack,char* str,uint64 sp,uint64 st
 {
   uint64 argc = ++ustack[0];
   if(argc>MAXARG+1)return -1;
+  //printf("[exec]push %s\n",str);
   sp -= strlen(str) + 1;
   sp -= sp % 16; // riscv sp must be 16-byte aligned
   if(sp < stackbase)
@@ -178,6 +180,7 @@ stackdisplay(pagetable_t pagetable,uint64 sp,uint64 sz)
 int
 exec(char *path, char **argv, char **env)
 {
+  int shflag = 0;
   uint64 sp,stackbase,entry;
   uint64 argc,envnum;
   uint64 aux[AUX_CNT*2+3] = {0,0,0};
@@ -190,36 +193,60 @@ exec(char *path, char **argv, char **env)
   struct dirent *ep;
   np->trapframe = allocpage();
   memcpy(np->trapframe,p->trapframe,sizeof(struct trapframe));
-
+  //__debug_warn("[exec] exec %s\n",path);
+  /*
+  for(int aaa = 0;argv[aaa];aaa++){
+    __debug_warn("[exec] exec argv[%d] %s\n",aaa,argv[aaa]);
+  }
+  */
   if ((proc_pagetable(np, 0, 0)) == NULL) {
+    __debug_warn("[exec]vma init bad\n");
     goto bad;
   }
 
-  
   if((ep = ename(NULL,path,0)) == NULL) {
     __debug_warn("[exec] %s not found\n", path);
     goto bad;
   }
-
-  //printf("[exec]exec %s\n",path);
+  
   elock(ep);
+  
+  int len = strlen(ep->filename);
+  if(strncmp(ep->filename+len-3,".sh",3)==0){
+    shflag = 1;
+    eunlock(ep);
+    eput(ep);
+    if((ep = ename(NULL,"/busybox",0))==NULL){
+      __debug_warn("[exec] %s not found\n", path);
+      goto bad;
+    }
+    elock(ep);
+  }
+  
+  
   // Check ELF header
   if(readelfhdr(ep,&elf)<0){
+    __debug_warn("[exec] %s is not a elf\n", path);
     goto bad;
   }
   struct proghdr phdr;
   entry = loadelf(np,ep,&elf,&phdr,0);
   if(entry==-1){
     eunlock(ep);
+    __debug_warn("[exec]load elf bad\n");
     goto bad;
   }
   eunlock(ep);
+  eput(ep);
   //print_vma_info(p);
   //print_vma_info(np);
   struct vma* stack_vma = type_locate_vma(np->vma,STACK);
   sp = stack_vma->end;
   stackbase = stack_vma->addr;
   ustack[0] = environ[0] =0;
+  if((sp = ustackpushstr(np->pagetable,environ,"LD_LIBRARY_PATH=/",sp,stackbase))==-1){
+      goto bad;
+  }
   if(entry!=elf.entry){
     //("elf.entry:%p\n",elf.entry);
     //printf("progentry:%p\n",progentry);
@@ -228,25 +255,35 @@ exec(char *path, char **argv, char **env)
       goto bad;
     }
 #endif
-    if((sp = ustackpushstr(np->pagetable,environ,"LD_LIBRARY_PATH=/",sp,stackbase))==-1){
+  }
+  auxalloc(aux,AT_PAGESZ,PGSIZE);
+  //printf("[exec]push argv\n");
+  // Push argument strings, prepare rest of stack in ustack.
+  
+  if(shflag){
+    if((sp = ustackpushstr(np->pagetable,ustack,"sh",sp,stackbase))==-1){
+      __debug_warn("[exec]push argv string bad\n");
       goto bad;
     }
   }
-  // Push argument strings, prepare rest of stack in ustack.
   for(argc = 0; argv[argc]; argc++) {
     if((sp = ustackpushstr(np->pagetable,ustack,argv[argc],sp,stackbase))==-1){
+      __debug_warn("[exec]push argv string bad\n");
       goto bad;
     }
   }
-  for(envnum = 0; environ[envnum]; envnum++) {
-    if((sp = ustackpushstr(np->pagetable,environ,argv[argc],sp,stackbase))==-1){
+  //printf("[exec]push env\n");
+  for(envnum = 0; env[envnum]; envnum++) {
+    if((sp = ustackpushstr(np->pagetable,environ,env[envnum],sp,stackbase))==-1){
+      __debug_warn("[exec]push env string bad\n");
       goto bad;
     }
   }
+  //printf("[exec]push end\n");
   if((environ[0]+ustack[0]+1)%2){sp -= 8;}//16 aligned
   //load aux
   if((sp = loadaux(np->pagetable,sp,stackbase,aux))<0){
-    printf("[exec]pass aux too many\n");
+    __debug_warn("[exec]pass aux too many\n");
     goto bad;
   }
   
@@ -255,28 +292,33 @@ exec(char *path, char **argv, char **env)
     // push the array of argv[] pointers.
     sp -= (argc+1) * sizeof(uint64);
     if(sp < stackbase){
+      __debug_warn("[exec]env address vec too long\n");
       goto bad;
     }
     if(copyout(np->pagetable, sp, (char *)(environ+1), (argc+1)*sizeof(uint64)) < 0){
+      __debug_warn("[exec]env address copy bad\n");
       goto bad;
     }
   }
   
   argc = ustack[0];
+  //printf("[exec]argc:%d\n",argc);
   // push the array of argv[] pointers.
   sp -= (argc+2) * sizeof(uint64);
   if(sp < stackbase){
+    __debug_warn("[exec]ustack address vec too long\n");
     goto bad;
   }
 
-  
   if(copyout(np->pagetable, sp, (char *)ustack, (argc+2)*sizeof(uint64)) < 0){
+    __debug_warn("[exec]ustack address copy bad\n");
     goto bad;
   }
   //stackdisplay(pagetable,sp,sz);
   // arguments to user main(argc, argv)
   // argc is returned via the system call return
   // value, which goes in a0.
+  np->trapframe->a0 = argc;
   np->trapframe->a1 = sp+8;
   
   for(last=s=path; *s; s++)
@@ -289,9 +331,19 @@ exec(char *path, char **argv, char **env)
   swap(&(p->pagetable),&(np->pagetable),sizeof(p->pagetable));
   swap(&(p->vma),&(np->vma),sizeof(p->vma));
   swap(&(p->trapframe),&(np->trapframe),sizeof(p->trapframe));
+  for(int fd = 0; fd < NOFILEMAX(p); fd++){
+    struct file* f = p->ofile[fd];
+    if(f&&p->exec_close[fd]){
+      //__debug_warn("[exec]close %d\n",fd);
+      fileclose(f);
+      p->ofile[fd] = 0;
+      p->exec_close[fd]=0;
+    }
+  }
   w_satp(MAKE_SATP(p->pagetable));
   
   sfence_vma();
+  //printf("[exec]argc:%d a0:%p\n",argc,p->trapframe->a0);
   uvmfree(np);
   return argc;
 bad:

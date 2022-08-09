@@ -11,6 +11,7 @@
 #include "include/printf.h"
 #include "include/string.h"
 #include "include/riscv.h"
+#include "include/mmap.h"
 
 struct vma *vma_list_init(struct proc *p)
 {
@@ -48,7 +49,7 @@ struct vma *vma_list_init(struct proc *p)
 
   // printf("[vma list init] mmap map\n");
   // alloc MMAP
-  if(alloc_mmap_vma(p, USER_MMAP_START, 0, 0, 0, 0) == NULL)
+  if(alloc_mmap_vma(p, 0, USER_MMAP_START, 0, 0, 0, 0) == NULL)
   {
     __debug_warn("[vma_list_init] mmap vma init fail\n");
     goto bad;
@@ -100,7 +101,6 @@ struct vma *alloc_vma(
       return NULL;
     }
   }
-
   struct vma *vma = (struct vma*)kmalloc(sizeof(struct vma));
   if(vma == NULL)
   {
@@ -132,7 +132,7 @@ struct vma *alloc_vma(
   vma->sz = sz;
   vma->end = end;
   vma->perm = perm;
-  vma->f = NULL;
+  vma->fd = -1;
   vma->f_off = 0;
   vma->type = type;
 
@@ -194,15 +194,25 @@ struct vma *addr_locate_vma(struct vma*head, uint64 addr)
   return NULL;
 }
 
-struct vma* alloc_mmap_vma(struct proc *p, uint64 addr, uint64 sz, int perm, struct file *f ,uint64 f_off)
+struct vma* alloc_mmap_vma(struct proc *p, int flags, uint64 addr, uint64 sz, int perm, int fd ,uint64 f_off)
 {
+  struct vma *vma = NULL;
+
   struct vma *mvma = type_locate_vma(p->vma, MMAP);
   if(addr == 0)
   {
     addr = PGROUNDDOWN(mvma->addr - sz);
+    // __debug_info("[alloc_mmap_vma] addr = %p\n", addr);
   }
-  struct vma *vma = alloc_vma(p, MMAP, addr, sz, perm, 1, NULL);
-  vma->f = f;
+
+  vma = alloc_vma(p, MMAP, addr, sz, perm, 1, NULL);
+  if(vma == NULL)
+  {
+    __debug_warn("[alloc_mmap_vma] alloc failed\n");
+    return NULL;
+  }
+
+  vma->fd = fd;
   vma->f_off = f_off;
   return vma;
 }
@@ -231,31 +241,40 @@ struct vma *alloc_addr_heap_vma(struct proc *p, uint64 addr, int perm)
 {
   struct vma *vma = type_locate_vma(p->vma, HEAP);
   struct vma *lvma = type_locate_vma(p->vma, LOAD);
+  addr = PGROUNDUP(addr);
   if(vma == NULL)
   {
     uint64 start = lvma->end;
-    if(start > addr)
-    {
-      __debug_warn("[alloc_addr_heap_vma] addr illegal\n");
-      return NULL;
-    }
-    vma = alloc_vma(p, HEAP, start, addr - start, perm, 1, NULL);
+    uint64 sz = 0;
+    if(start < addr)sz = addr - start ;
+    vma = alloc_vma(p, HEAP, start, sz, perm, 1, NULL);
     return vma;
   }
   else
   {
     if(lvma->end > addr)
     {
-      __debug_warn("[alloc_addr_heap_vma] addr illegal\n");
-      return NULL;
+      __debug_warn("[alloc_addr_heap_vma] addr %p illegal\n", addr);
+      return vma;
+    }
+    if(vma->end > addr)
+    {
+      if(uvmdealloc(p->pagetable, addr, vma->end) != 0)
+      {
+        __debug_warn("[alloc_addr_heap_vma] uvmdealloc fail\n");
+        return vma;
+      }
+      vma->end = addr;
+      vma->sz = (vma->end - vma->addr);
+      return vma;
     }
     
-    if(uvmalloc(p->pagetable, vma->end, PGROUNDUP(addr), perm) != 0)
+    if(uvmalloc(p->pagetable, vma->end, addr, perm) != 0)
     {
       __debug_warn("[alloc_addr_heap_vma] uvmalloc fail\n");
-      return NULL;
+      return vma;
     }
-    vma->end = PGROUNDUP(addr);
+    vma->end = addr;
     vma->sz = (vma->end - vma->addr);
     return vma;
   }
@@ -320,6 +339,7 @@ int free_vma_list(struct proc *p)
     return 1;
   }
   struct vma *vma = vma_head->next;
+  
   while(vma != vma_head)
   {
     uint64 a;
@@ -332,7 +352,9 @@ int free_vma_list(struct proc *p)
       if(PTE_FLAGS(*pte) == PTE_V)
         continue;
       uint64 pa = PTE2PA(*pte);
+      //__debug_warn("[free single vma]free:%p\n",pa);
       freepage((void*)pa);
+      //__debug_warn("[free vma list]free end\n");
       *pte = 0;
     }
     vma = vma->next;
@@ -343,20 +365,49 @@ int free_vma_list(struct proc *p)
   return 1;
 }
 
-int free_vma(struct proc *p, uint64 addr, uint64 len)
+struct vma *addr_sz_locate_vma(struct vma*head, uint64 addr, uint64 sz)
 {
-  struct vma *a = addr_locate_vma(p->vma, addr);
-  struct vma *b = addr_locate_vma(p->vma, addr + len);
-  if(!a || !b || a != b)
+  if(head == NULL)
   {
-    __debug_warn("[free_vma] no vma matched\n");
+    __debug_warn("[addr_sz_locate_vma] head is nil\n");
+    return NULL;
+  }
+  struct vma *vma = head->next;
+  while(vma != head)
+  {
+    if(vma->addr == addr && vma->sz == sz)
+    {
+      return vma;
+    }
+    vma = vma->next;
+  }
+  return NULL;
+}
+
+int free_vma(struct proc *p, struct vma *del)
+{
+  if(del == NULL)
+  {
+    __debug_warn("[free_vma] del is nil\n");
     return 0;
   }
-  if(uvmdealloc(p->pagetable, a->addr, a->end) != 0)
+  if(del->prev == NULL || del->next == NULL)
+  {
+    __debug_warn("[free_vma] del is illegal\n");
+    return 0;
+  }
+  
+  struct vma *prev = del->prev;
+  struct vma *next = del->next;
+  prev->next = next;
+  next->prev = prev;
+  del->next = del->prev = NULL;
+  if(uvmdealloc(p->pagetable, del->addr, del->end) != 0)
   {
     __debug_warn("[free_vma] uvmdealloc fail\n");
     return 0;
   }
+  kfree(del);
   return 1;
 }
 
@@ -489,6 +540,34 @@ err:
   return -1;
 }
 
+// Grow or shrink user memory by n bytes.
+// Return 0 on success, -1 on failure.
+uint64
+growproc(int n)
+{
+  struct proc *p = myproc();
+  //printf("[growproc]proc name:%s\n",p->name);
+  //printf("[growproc]want grow to %p\n",n);
+  struct vma* vma = alloc_addr_heap_vma(p, n, PTE_R|PTE_W|PTE_U);
+  if(vma == NULL){
+    __debug_warn("[growproc]alloc heap not found\n");
+    return 0;
+  }
+  //printf("[growproc]actually grow to %p\n",vma->end);
+  return vma->end;
+}
+
+uint64 growprocsize(uint64 sz)
+{
+  struct proc *p = myproc();
+  struct vma *vma = alloc_sz_heap_vma(p, sz, PTE_R|PTE_W|PTE_U);
+  if(vma == NULL)
+  {
+    __debug_warn("[growproc] alloc heap failed\n");
+    return 0;
+  }
+  return vma->end - PGROUNDUP(sz);
+}
 
 static char * vma_type[] = {
   [NONE]  "NONE",
@@ -513,5 +592,12 @@ void print_vma_info(struct proc* p)
                 pvma->addr, kwalkaddr1(p->pagetable,pvma->addr),pvma->sz, pvma->end, vma_type[pvma->type]);
     pvma = pvma->next;
   }
+}
+
+void print_single_vma(pagetable_t pagetable,struct vma* v)
+{
+  __debug_info("[vma_info]va %p\tsz %p\tend %p\tname %s\n", 
+                v->addr,v->sz, v->end, vma_type[v->type]);
+
 }
   

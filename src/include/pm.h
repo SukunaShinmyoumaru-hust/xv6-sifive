@@ -18,5 +18,7 @@ void            freepage(void *);
 
 uint64          idlepages(void);
 
+void		checkmemlist(void* pa);
+
 #endif
 

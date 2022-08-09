@@ -13,31 +13,62 @@ echo "static uint64 (*syscalls[])(void) = {">>$kfuntemp;
 echo "static char *sysnames[] = {">>$kstrtemp;
 
 entry(){
-    echo ".global $1">>$usys;
-    echo "$1:">>$usys;
-    echo "\tli a7, SYS_$1">>$usys;
+    echo ".global $2">>$usys;
+    echo "$2:">>$usys;
+    echo "\tli a7, SYS_$2">>$usys;
     echo "\tecall">>$usys;
     echo "\tret">>$usys;
-    echo "#define SYS_$1\t$2">>$sysnum
-    echo "extern uint64 sys_$1(void);">>$kextemp;
-    echo "\t[SYS_$1]\tsys_$1,">>$kfuntemp;
-    echo "\t[SYS_$1]\t\"$1\",">>$kstrtemp;
+    echo "#define SYS_$2\t$1">>$sysnum
+    echo "extern uint64 sys_$2(void);">>$kextemp;
+    echo "\t[SYS_$2]\tsys_$2,">>$kfuntemp;
+    echo "\t[SYS_$2]\t\"$2\",">>$kstrtemp;
 }
 
+entry	17	getcwd 
+entry	23	dup	
+entry	24	dup3
+entry	25	fcntl	
+entry	29	ioctl
+entry   34	mkdirat
+entry	35	unlinkat
+entry   48	faccessat
+entry	56	openat
+entry	57	close
+entry	61	getdents64
+entry   62	lseek
+entry	63	read
+entry	64	write	
+entry	65	readv
+entry	66	writev	
+entry   71	sendfile
+entry	79	fstatat 
+entry	80	fstat 
+entry   88  utimensat
+entry	93	exit	
+entry	94	exit_group
+entry	96	set_tid_address
+entry	113	clock_gettime	
+entry	116	syslog	
+entry	134	rt_sigaction
+entry	135	rt_sigprocmask	
+entry	139	rt_sigreturn
+entry	144	setgid   
+entry	146	setuid 
+entry	160	uname 
+entry	172	getpid 
+entry	173	getppid
+entry	174	getuid
+entry	176	getgid
+entry	178	gettid 
+entry	179	sysinfo
+entry	214	brk
+entry	215	munmap 
+entry	220	clone	
+entry	221	execve
+entry	222	mmap  
+entry	260	wait4
+entry	276	renameat2
 
-entry	dup		23
-entry	dup3		24
-entry	openat		56
-entry	read		63
-entry	write		64
-entry	exit		93
-entry	rt_sigaction	134
-entry	rt_sigreturn	139
-entry	getpid 	172
-entry	getppid	173
-entry	clone		220
-entry	execve		221
-entry	wait4		260
 
 
 echo "};">>$kfuntemp;

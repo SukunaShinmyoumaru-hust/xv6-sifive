@@ -4,7 +4,6 @@
 #include "sleeplock.h"
 #include "stat.h"
 #include "buf.h"
-#include "mmap.h"
 #include "param.h"
 
 #define ATTR_READ_ONLY      0x01
@@ -26,9 +25,16 @@
 #define FAT32_MAX_PATH      260
 #define ENTRY_CACHE_NUM     50
 
-#define S_IFMT  0170000
-#define S_IFDIR 0040000
-#define S_IFCHR 0020000
+#define S_IFMT				0170000
+#define S_IFSOCK			0140000		// socket
+#define S_IFLNK				0120000		// symbolic link
+#define S_IFREG				0100000		// regular file
+#define S_IFBLK				0060000		// block device
+#define S_IFDIR				0040000		// directory
+#define S_IFCHR				0020000		// character device
+#define S_IFIFO				0010000		// FIFO
+#define ST_MODE_DIR			S_IFDIR
+
 
 #define NAME_HASH	     1000000
 
@@ -146,5 +152,6 @@ int                 eread(struct dirent *entry, int user_dst, uint64 dst, uint o
 int                 ewrite(struct dirent *entry, int user_src, uint64 src, uint off, uint n);
 int                 emount(struct fs* fatfs,char* mnt);
 int                 eumount(char* mnt);
+int                 isdirempty(struct dirent *dp);
 struct dirent*      create(struct dirent* env, char *path, short type, int mode);
 #endif

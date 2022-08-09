@@ -34,14 +34,18 @@ static struct {
 	uint64 npage;
 } kmem;
 
+int frees;
+int allocs;
+
 void
 kpminit()
 {
 	initlock(&kmem.lock, "kmem");
 	kmem.freelist = 0;
 	kmem.npage = 0;
+	allocs = frees = 0;
 	freerange(kernel_end, (void*)PHYSTOP);
-	__debug_info("kpminit kernel_end: %p, phystop: %p, npage %d\n", kernel_end, (void*)PHYSTOP, kmem.npage);
+	__debug_info("kpminit kernel_end: %p, phystop: %p, npage %d allocator:%p\n", kernel_end, (void*)PHYSTOP, kmem.npage,&kmem);
 }
 
 // Free the page of physical memory pointed at by v,
@@ -65,6 +69,7 @@ freepage(void *pa)
 	r->next = kmem.freelist;
 	kmem.freelist = r;
 	kmem.npage++;
+	frees++;
 	release(&kmem.lock);
 }
 
@@ -89,7 +94,19 @@ allocpage(void)
 		memset((char*)r, 5, PGSIZE); // fill with junk
 	#endif 
 
+	allocs++;
 	return (void*)r;
+}
+
+void
+checkmemlist(void* pa){
+	struct run* r = kmem.freelist;
+	while(r){
+	  if(pa == r){
+	    __debug_warn("[freepage]free %p twice\n",pa);
+	  }
+	  r= r->next;
+	}
 }
 
 uint64

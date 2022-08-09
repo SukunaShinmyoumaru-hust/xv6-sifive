@@ -16,9 +16,12 @@
 #include "include/printf.h"
 #include "include/string.h"
 #include "include/vm.h"
+#include "include/pm.h"
+extern struct proc* procs[NPROC];
 // Please be noticed that before we insert a new ksig into 
 // the list, we must make sure that there's no sigaction for 
 // the same signum in the sigaction list. 
+
 static void __insert_sig(struct proc *p, ksigaction_t *ksig) {
 
 	// Create a new one 
@@ -43,8 +46,7 @@ static ksigaction_t *__search_sig(struct proc *p, int signum) {
 int set_sigaction(
 	int signum, 
 	struct sigaction const *act, 
-	struct sigaction *oldact, 
-	int len
+	struct sigaction *oldact 
 ) {
 	struct proc *p = myproc();
 
@@ -83,13 +85,12 @@ int set_sigaction(
 int sigprocmask(
 	int how, 
 	__sigset_t *set, 
-	__sigset_t *oldset, 
-	int len
+	__sigset_t *oldset
 ) {
 	struct proc *p = myproc();
 
 
-	for (int i = 0; i < len; i ++) {
+	for (int i = 0; i < SIGSET_LEN; i ++) {
 		if (NULL != oldset) {
 			oldset->__val[i] = p->sig_set.__val[i];
 		}
@@ -136,7 +137,7 @@ void sighandle(void) {
 		for (; i < SIGSET_LEN; i ++) {
 			while (bit < len) {
 				if (p->sig_pending.__val[i] & (1ul << bit)) {
-					p->killed = i * len + bit;
+					p->killed = i * len + bit; // p->killed
 					goto start_handle;
 				}
 				bit ++;
@@ -166,9 +167,9 @@ start_handle:
 	}
 
 	// frame = kmalloc(sizeof(struct sig_frame));
-        frame = kmalloc(sizeof(struct sig_frame));
+        frame = allocpage();
 	// tf = kmalloc(sizeof(struct trapframe));
-        tf = kmalloc(sizeof(struct trapframe));
+        tf = allocpage();
 	// copy mask 
 	// for (int i = 0; i < SIGSET_LEN; i ++) {
 	// 	frame->mask.__val[i] = p->sig_set.__val[i];
@@ -261,10 +262,16 @@ void sigreturn(void) {
 	// for (int i = 0; i < SIGSET_LEN; i ++) {
 	// 	p->sig_set.__val[i] = frame->mask.__val[i];
 	// }
-	kfree(p->trapframe);
+	freepage(p->trapframe);
 	p->trapframe = frame->tf;
 
 	// remove this frame from list 
 	p->sig_frame = frame->next;
-	kfree(frame);
+	freepage(frame);
 }
+/*
+int kill(int pid,int sig){
+	struct proc* p;
+	for(p = procs;)
+}
+*/

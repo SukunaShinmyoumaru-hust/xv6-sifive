@@ -40,6 +40,12 @@ struct file {
 #define SEEK_CUR  (int)1
 #define SEEK_END  (int)2
 
+#define R_OK	4		/* Test for read permission.  */
+#define W_OK	2		/* Test for write permission.  */
+#define X_OK	1		/* Test for execute permission.  */
+#define F_OK	0		/* Test for existence.  */  
+
+
 struct file*    filealloc(void);
 void            fileclose(struct file*);
 struct file*    filedup(struct file*);
@@ -48,6 +54,7 @@ int             fileread(struct file*, uint64, int);
 int             filestat(struct file*, uint64 addr);
 int		          filekstat(struct file *f, uint64 addr);
 int             filewrite(struct file*, uint64, int n);
+uint64          filesend(struct file* fin,struct file* fout,uint64 addr,uint64 n);
 int             dirnext(struct file *f, uint64 addr);
 int             dirent_next(struct file *f, uint64 addr, int n);
 uint64			filelseek(struct file *f, uint64 offset, int whence);

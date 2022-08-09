@@ -13,6 +13,7 @@
 #include "cpu.h"
 #include "utils/list.h"
 #include "vma.h"
+#include "mmap.h"
 
 #define FUTEX_WAIT		0
 #define FUTEX_WAKE		1
@@ -126,14 +127,16 @@ struct robust_list_head {
 struct proc {
   int magic;
   struct spinlock lock;
-
   // p->lock must be held when using these:
   enum procstate state;        // Process state
   struct proc *parent;         // Parent process
   void *chan;                  // If non-zero, sleeping on chan
+  // the signal that will be handled...
   int killed;                  // If non-zero, have been killed
   int xstate;                  // Exit status to be returned to parent's wait
   int pid;                     // Process ID
+  int uid;                      
+  int gid;
 
   // these are private to the process, so p->lock need not be held.
   uint64 kstack;               // Virtual address of kernel stack
@@ -141,31 +144,31 @@ struct proc {
   pagetable_t pagetable;       // User page table
   struct trapframe *trapframe; // data page for trampoline.S
   struct context context;      // swtch() here to run process
-  uint64 filelimit;
+  int64 filelimit;
   struct file **ofile;        // Open files
+  int *exec_close;        // Open files
   struct dirent *cwd;          // Current directory
   char name[16];               // Process name (debugging)
   int tmask;                    // trace mask
   struct tms proc_tms;
   struct list dlist;
   struct vma *vma;
+  map_fix *mf;
   // signal
-  ksigaction_t *sig_act;
-  __sigset_t sig_set;
-  __sigset_t sig_pending;
-  struct sig_frame *sig_frame;
+  ksigaction_t *sig_act;//action
+  __sigset_t sig_set;// proc_mask //ignore
+  __sigset_t sig_pending;// pending xin hao deng dai dui lie
+  struct sig_frame *sig_frame;// xin hao ban de trapframe
   uint64 set_child_tid;
   uint64 clear_child_tid;
   struct robust_list_head *robust_list;
 };
 
 #define NOFILEMAX(p) (p->filelimit<NOFILE?p->filelimit:NOFILE)
-#define EMFILE 24
 
 void            exit(int);
 int             fork(void);
 void            forkret(void);
-int             growproc(int);
 pagetable_t     proc_pagetable(struct proc *p, struct proc *pp, int thread_create);
 // void            proc_freepagetable(pagetable_t, uint64);
 void            proc_freepagetable(struct proc *p);

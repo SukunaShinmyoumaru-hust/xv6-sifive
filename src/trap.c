@@ -85,7 +85,7 @@ usertrap(void)
   uint64 cause = r_scause();
   if(cause == EXCP_ENV_CALL){
     // system call
-    if(p->killed)
+    if(p->killed == SIGTERM)
       exit(-1);
     // sepc points to the ecall 1instruction,
     // but we want to return to the next instruction.

@@ -14,6 +14,7 @@
 #include "include/trap.h"
 #include "include/vm.h"
 #include "include/vma.h"
+#include "include/mmap.h"
 #include "include/pm.h"
 
 #define WAITQ_NUM 100
@@ -166,11 +167,17 @@ allocpid() {
 static void
 freeproc(struct proc *p)
 {
+/*
   if(p->trapframe)
     freepage((void*)p->trapframe);
+    */
   p->trapframe = 0;
+  if(p->mf)
+    free_map_fix(p);
   if(p->ofile)
     kfree((void*)p->ofile);
+  if(p->ofile)
+    kfree((void*)p->exec_close);
   p->ofile = 0;
   if(p->kstack)
     freepage((void *)p->kstack);
@@ -197,11 +204,6 @@ freeproc(struct proc *p)
   sigframefree(p->sig_frame);
 }
 
-
-void smallcheck(int n,pagetable_t pagetable){
-  __debug_warn("check%d pagetable:%p pa:%p\n",n,pagetable,kwalkaddr1(pagetable,0xea));
-}
-
 // Look in the process table for an UNUSED proc.
 // If found, initialize state required to run in the kernel,
 // and return with p->lock held.
@@ -224,11 +226,14 @@ allocproc(struct proc *pp, int thread_create)
 found:
   p->pid = allocpid();
   p->killed = 0;
+  p->mf = NULL;
   p->filelimit = NOFILE;
   p->robust_list = NULL;
   p->clear_child_tid = NULL;
   p->set_child_tid = NULL;
   p->vma = NULL;
+  p->uid = 0;
+  p->gid = 0;
   // Allocate a trapframe page.
   if((p->trapframe = allocpage()) == NULL){
     release(&p->lock);
@@ -246,6 +251,7 @@ found:
     return NULL;
   }
   p->ofile = kmalloc(NOFILE*sizeof(struct file*));
+  p->exec_close = kmalloc(NOFILE*sizeof(int));
   
   if(!p->ofile){
     panic("proc ofile init\n");
@@ -253,6 +259,7 @@ found:
   
   for(int fd = 0; fd < NOFILE; fd++){
     p->ofile[fd] = NULL;
+    p->exec_close[fd] = 0;
   }
   
   memset(p->ofile, 0, NOFILE*sizeof(struct file*));
@@ -299,6 +306,7 @@ proc_pagetable(struct proc *p, struct proc *pp, int thread_create)
   //printf("[proc pagetable]alloc pagetable:%p\n",p->pagetable);
   if(pp == NULL)
   {
+    
     if(vma_list_init(p) == NULL)
     {
       //__debug_warn("[proc_pagetable] vma list init failed\n");
@@ -350,7 +358,7 @@ proc_pagetable(struct proc *p, struct proc *pp, int thread_create)
     }
   }
   //print_vma_info(p);
-  //__debug_info("[proc_pagetable] successfully return\n");
+  //__debug_warn("[proc_pagetable] successfully return\n");
   return pagetable;
 }
 
@@ -390,6 +398,7 @@ userinit()
   readyq_push(p);//insert to ready queue
   p->tmask = 0;
   p->cwd = ename(NULL,"/",0);
+
   release(&p->lock);
   __debug_info("userinit\n");
 }
@@ -451,7 +460,6 @@ int clone(uint64 flag, uint64 stack, uint64 ptid, uint64 tls, uint64 ctid) {
     if(p->ofile[i])
       np->ofile[i] = filedup(p->ofile[i]);
   np->cwd = edup(p->cwd);
-  
   
   // np->parent = p;
   allocparent(p, np);
@@ -597,25 +605,23 @@ getparent(struct proc* child){
 
 //need release return proc lock
 struct proc*
-findchild(struct proc* p,int (*cond)(struct proc*,int),int* pid){
-   int kidpid = -1;
+findchild(struct proc* p,int (*cond)(struct proc*,int),int pid,struct proc** child){
+   *child = NULL;
    for(struct proc* np = proc; np < &proc[NPROC]; np++){
       // this code uses np->parent without holding np->lock.
       // acquiring the lock first would cause a deadlock,
       // since np might be an ancestor, and we already hold p->lock.
-      if(np->parent == p && cond(np,*pid)){
+      if(np->parent == p&&cond(np,pid)){
         // np->parent can't change between the check and the acquire()
         // because only the parent changes it, and we're the parent.
         acquire(&np->lock);
-        kidpid = np->pid; 
+        *child = np; 
         if(np->state == ZOMBIE){
-          *pid = kidpid;
           return np;
         }
         release(&np->lock);
       }
    }
-   *pid = kidpid;
    return NULL;
 }
 
@@ -669,32 +675,38 @@ wait4pid(int pid,uint64 addr)
   int kidpid;
   struct proc *p = myproc();
   struct proc* child;
-  
+  struct proc* chan = NULL;
   // hold p->lock for the whole time to avoid lost
   // wakeups from a child's exit().
   acquire(&p->lock);
+  //__debug_warn("[wait4pid]pid%d:%s enter\n",p->pid,p->name);
   while(1){
     kidpid = pid;
-    child = findchild(p,zombiecond,&kidpid);
+    child = findchild(p,zombiecond,pid,&chan);
+    //__debug_warn("[wait4pid]pid%d:%s chan:%p\n",p->pid,p->name,chan);
     if(child != NULL){
+      kidpid = child->pid;
       p->proc_tms.cstime += child->proc_tms.stime + child->proc_tms.cstime;
       p->proc_tms.cutime += child->proc_tms.utime + child->proc_tms.cutime;
       if(addr != 0 && copyout(p->pagetable,addr, (char *)&child->xstate, sizeof(child->xstate)) < 0) {
         release(&child->lock);
         release(&p->lock);
+        __debug_warn("[wait4pid]pid%d:%s copyout bad\n",p->pid,p->name);
         return -1;
       }
       freeproc(child);
       release(&child->lock);
       release(&p->lock);
+      //__debug_info("[wait4pid]pid%d:%s kidpid:%p\n",p->pid,p->name,kidpid);
       return kidpid;
     }
-    if(kidpid == -1||p->killed){
-      __debug_warn("[wait4pid]no kid to wait\n");
+    if(!chan){
+      //__debug_warn("[wait4pid]pid%d:%s no kid to wait\n",p->pid,p->name);
       release(&p->lock);
       return -1;
     }
-    sleep(p, &p->lock);  //DOC: wait-sleep
+    if(pid == -1)sleep(p, &p->lock);  //DOC: wait-sleep
+    else sleep(chan,&p->lock);
   }
   release(&p->lock);
   return 0;
@@ -704,10 +716,9 @@ void
 exit(int n)
 {
   struct proc *p = myproc();
-
   //if(p == initproc)
     //panic("init exiting");
-
+  //__debug_warn("[exit]pid %d:%s exit %d\n",p->pid,p->name,n);
   // Close all open files.
   for(int fd = 0; fd < NOFILE; fd++){
     if(p->ofile[fd]){
@@ -726,7 +737,7 @@ exit(int n)
   
   p->xstate = n;
   p->state = ZOMBIE;
-
+  
   // p->killed = SIGTERM;
   // Jump into the scheduler, never to return.
   sched();
@@ -735,5 +746,3 @@ exit(int n)
   
   }
 }
-
-

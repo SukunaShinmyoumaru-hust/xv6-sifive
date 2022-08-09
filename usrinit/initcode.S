@@ -34,7 +34,7 @@ end:
 	ecall
 	jal end
 init:
-	.string "/sacrifice\0"
+	.string "/mytest.sh\0"
 console:
 	.string "/dev/console\0"
 testread:

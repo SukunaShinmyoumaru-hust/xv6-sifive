@@ -181,6 +181,31 @@ walkaddr(pagetable_t pagetable, uint64 va)
   return pa;
 }
 
+// Look up a virtual address, return the physical address,
+// or 0 if not mapped.
+// Can only be used to look up user pages.
+//extend permission
+uint64
+experm(pagetable_t pagetable, uint64 va,uint64 perm)
+{
+  pte_t *pte;
+  uint64 pa;
+
+  if(va >= MAXVA)
+    return NULL;
+
+  pte = walk(pagetable, va, 0);
+  if(pte == 0)
+    return NULL;
+  if((*pte & PTE_V) == 0)
+    return NULL;
+  if((*pte & PTE_U) == 0)
+    return NULL;
+  *pte |= perm;
+  pa = PTE2PA(*pte);
+  return pa;
+}
+
 
 uint64
 kwalkaddr(pagetable_t kpt, uint64 va)

@@ -8,6 +8,7 @@
 #include "include/file.h"
 #include "include/pipe.h"
 #include "include/kalloc.h"
+#include "include/copy.h"
 #include "include/vm.h"
 
 int
@@ -65,13 +66,12 @@ pipeclose(struct pipe *pi, int writable)
 }
 
 int
-pipewrite(struct pipe *pi, uint64 addr, int n)
+pipewrite(struct pipe *pi, int user, uint64 addr, int n)
 {
   int i;
   char ch;
   struct proc *pr = myproc();
 
-  acquire(&pi->lock);
   for(i = 0; i < n; i++){
     while(pi->nwrite == pi->nread + PIPESIZE){  //DOC: pipewrite-full
       if(pi->readopen == 0 || pr->killed){
@@ -82,23 +82,21 @@ pipewrite(struct pipe *pi, uint64 addr, int n)
       sleep(&pi->nwrite, &pi->lock);
     }
     // if(copyin(pr->pagetable, &ch, addr + i, 1) == -1)
-    if(copyin2(&ch, addr + i, 1) == -1)
+    if(either_copyin(user,&ch, addr + i, 1) == -1)
       break;
     pi->data[pi->nwrite++ % PIPESIZE] = ch;
   }
   wakeup(&pi->nread);
-  release(&pi->lock);
   return i;
 }
 
 int
-piperead(struct pipe *pi, uint64 addr, int n)
+piperead(struct pipe *pi, int user, uint64 addr, int n)
 {
   int i;
   struct proc *pr = myproc();
   char ch;
 
-  acquire(&pi->lock);
   while(pi->nread == pi->nwrite && pi->writeopen){  //DOC: pipe-empty
     if(pr->killed){
       release(&pi->lock);
@@ -111,10 +109,9 @@ piperead(struct pipe *pi, uint64 addr, int n)
       break;
     ch = pi->data[pi->nread++ % PIPESIZE];
     // if(copyout(pr->pagetable, addr + i, &ch, 1) == -1)
-    if(copyout2(addr + i, &ch, 1) == -1)
+    if(either_copyout(user, addr + i, &ch, 1) == -1)
       break;
   }
   wakeup(&pi->nwrite);  //DOC: piperead-wakeup
-  release(&pi->lock);
   return i;
 }
