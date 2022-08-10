@@ -123,6 +123,7 @@ struct robust_list_head {
   struct robust_list *list_op_pending;
 };
 
+
 // Per-process state
 struct proc {
   int magic;
@@ -153,6 +154,7 @@ struct proc {
   struct tms proc_tms;
   struct list dlist;
   struct vma *vma;
+  uint64 q;
   map_fix *mf;
   // signal
   ksigaction_t *sig_act;//action
@@ -173,6 +175,7 @@ pagetable_t     proc_pagetable(struct proc *p, struct proc *pp, int thread_creat
 // void            proc_freepagetable(pagetable_t, uint64);
 void            proc_freepagetable(struct proc *p);
 int             kill(int pid,int sig);
+int             tgkill(int pid,int tid,int sig);
 struct proc*    myproc();
 void            procinit(void);
 void            scheduler(void) __attribute__((noreturn));

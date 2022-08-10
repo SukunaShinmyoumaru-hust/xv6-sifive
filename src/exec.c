@@ -72,6 +72,7 @@ static uint64
 loadelf(struct proc* p, struct dirent *ep,struct elfhdr* elf,struct proghdr* phdr,uint64 base)
 {
   struct proghdr ph;
+  int getphdr = 0;
   //struct elfhdr  linkelf;
   pagetable_t pagetable = p->pagetable;
   for(int i=0, off=elf->phoff; i<elf->phnum; i++, off+=sizeof(ph)){
@@ -86,6 +87,9 @@ loadelf(struct proc* p, struct dirent *ep,struct elfhdr* elf,struct proghdr* phd
         __debug_warn("[exec]memsz not positive\n");
         return -1;
       }
+      if(!getphdr&&phdr&&ph.off == 0){ 
+        phdr->vaddr = elf->phoff + ph.vaddr;
+      }
       uint64 load_start = ph.vaddr+base;
       if(alloc_load_vma(p, load_start, ph.memsz, PTE_R|PTE_W|PTE_X|PTE_U)== NULL){
         __debug_warn("[exec]grow space failed\n");
@@ -97,6 +101,7 @@ loadelf(struct proc* p, struct dirent *ep,struct elfhdr* elf,struct proghdr* phd
       }
     }else if(ph.type==ELF_PROG_PHDR){
       if(phdr){
+        getphdr = 1;
         *phdr = ph;
       }
     }else if(ph.type==ELF_PROG_INTERP){
@@ -229,7 +234,7 @@ exec(char *path, char **argv, char **env)
     __debug_warn("[exec] %s is not a elf\n", path);
     goto bad;
   }
-  struct proghdr phdr;
+  struct proghdr phdr = {0};
   entry = loadelf(np,ep,&elf,&phdr,0);
   if(entry==-1){
     eunlock(ep);
@@ -256,7 +261,27 @@ exec(char *path, char **argv, char **env)
     }
 #endif
   }
+  uint64 random[2] = { 0xcde142a16cb93072, 0x128a39c127d8bbf2 };
+  sp -= 16;
+  if (sp < stackbase || copyout(np->pagetable, sp, (char *)random, 16) < 0) {
+    __debug_warn("[exec] random copy bad\n");
+    goto bad;
+  }
+
+
+  //auxalloc(aux,AT_HWCAP, 0x112d);
   auxalloc(aux,AT_PAGESZ,PGSIZE);
+  auxalloc(aux,AT_PHDR, phdr.vaddr);
+  auxalloc(aux,AT_PHENT, elf.phentsize);
+  auxalloc(aux,AT_PHNUM, elf.phnum);
+  auxalloc(aux,AT_UID, 0);
+  auxalloc(aux,AT_EUID, 0);
+  auxalloc(aux,AT_GID, 0);
+  auxalloc(aux,AT_EGID, 0);
+  auxalloc(aux,AT_SECURE, 0);
+  auxalloc(aux,AT_EGID, 0);		
+  auxalloc(aux,AT_RANDOM, sp);
+
   //printf("[exec]push argv\n");
   // Push argument strings, prepare rest of stack in ustack.
   

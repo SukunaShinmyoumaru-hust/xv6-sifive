@@ -47,6 +47,7 @@ OBJS += \
 	$K/kernelvec.o \
 	$K/trap.o \
 	$K/copy.o \
+	$K/poll.o \
 	$K/cpu.o \
 	$K/vma.o \
 	$K/mmap.o \
@@ -57,6 +58,7 @@ OBJS += \
 	$K/systime.o \
 	$K/sysproc.o \
 	$K/syslog.o \
+	$K/syspoll.o \
 	$K/syssig.o \
 	$K/syscall.o
 
@@ -167,7 +169,7 @@ qemu-gdb: $K/kernel .gdbinit
 	@echo "*** Now run 'gdb' in another window." 1>&2
 	$(QEMU) $(QEMUOPTS) -S $(QEMUGDB)
 
-commit?=fix_getdents64
+commit?=lmbench_start
 
 add:
 	git remote add origin https://gitlab.eduxiji.net/Cty/oskernrl2022-rv6.git
@@ -175,7 +177,7 @@ add:
 push:
 	git add .
 	git commit -m  "$(commit)"
-	git push origin master
+	git push origin main
 
 
 

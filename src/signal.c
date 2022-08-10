@@ -269,9 +269,4 @@ void sigreturn(void) {
 	p->sig_frame = frame->next;
 	freepage(frame);
 }
-/*
-int kill(int pid,int sig){
-	struct proc* p;
-	for(p = procs;)
-}
-*/
+

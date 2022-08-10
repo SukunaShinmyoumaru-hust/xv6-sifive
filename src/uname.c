@@ -5,9 +5,9 @@
 #include "include/printf.h"
 #include "include/copy.h"
 
-char const UNAME_SYSNAME[] = "xv6-sifive_u";
+char const UNAME_SYSNAME[] = "rv6";
 char const UNAME_NODENAME[] = "none";
-char const UNAME_RELEASE[] = "v1.0";
+char const UNAME_RELEASE[] = "5.0";
 char const UNAME_VERSION[] = __DATE__" "__TIME__;
 #ifdef SIFIVE_U
 char const UNAME_MACHINE[] = "Sifive U740";

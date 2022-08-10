@@ -5,6 +5,7 @@
 #include "include/syscall.h"
 #include "include/mmap.h"
 #include "include/copy.h"
+#include "include/pipe.h"
 #include "include/errno.h"
 
 // Allocate a file descriptor for the given file.
@@ -54,16 +55,18 @@ sys_openat()
    ||argint(3, &mode) <0 )
     return -1;
 
-  // __debug_warn("[sys openat]flags:%p mode:%p\n",flags,mode);
+  //__debug_warn("[sys openat]flags:%p mode:%p\n",flags,mode);
   if(mode | O_RDWR){
   	flags |= O_RDWR;
   }else if(mode == 0600){
   	flags = flags;
   	//clear execute
   }
+  /*
   if(flags&0x8000){
     flags|=O_CREATE;
   }
+  */
   
   if(dirf&&dirf->type==FD_ENTRY){
     dp = dirf->ep;
@@ -87,6 +90,12 @@ sys_openat()
     }
   }else{
      elock(ep);
+  }
+  int pathlen = strlen(path);
+  if(ep==dev&&devno==-1&&strncmp(path+pathlen-3,"dev",4)){
+    eunlock(ep);
+    __debug_warn("[sys openat] device %s don't exist\n",path);
+    return -1;
   }
   if(devno==-1&&(ep->attribute & ATTR_DIRECTORY) && ( !(flags&O_WRONLY) && !(flags&O_RDWR) )){
     __debug_warn("[sys openat] diretory only can be read\n");
@@ -128,7 +137,7 @@ sys_openat()
     elock(dp);  
   }
   p->exec_close[fd] = 0;
-  // __debug_warn("[sys openat] fd:%d openat:%s\n",fd,path);
+ // __debug_warn("[sys openat] fd:%d openat:%s\n",fd,path);
   return fd;
 }
 
@@ -817,6 +826,40 @@ sys_getdents64(void)
   return dirent_next(fp, buf, len);
 }
 
+uint64
+sys_pipe2(void)
+{
+  uint64 fdarray; // user pointer to array of two integers
+  struct file *rf, *wf;
+  int fd0, fd1;
+  struct proc *p = myproc();
+
+  if(argaddr(0, &fdarray) < 0)
+    return -1;
+  if(pipealloc(&rf, &wf) < 0)
+    return -1;
+  fd0 = -1;
+  if((fd0 = fdalloc(rf)) < 0 || (fd1 = fdalloc(wf)) < 0){
+    if(fd0 >= 0)
+      p->ofile[fd0] = 0;
+    fileclose(rf);
+    fileclose(wf);
+    return -1;
+  }
+  // if(copyout(p->pagetable, fdarray, (char*)&fd0, sizeof(fd0)) < 0 ||
+  //    copyout(p->pagetable, fdarray+sizeof(fd0), (char *)&fd1, sizeof(fd1)) < 0){
+  if(either_copyout(1, fdarray, (char*)&fd0, sizeof(fd0)) < 0 ||
+     either_copyout(1, fdarray+sizeof(fd0), (char *)&fd1, sizeof(fd1)) < 0){
+    p->ofile[fd0] = 0;
+    p->ofile[fd1] = 0;
+    fileclose(rf);
+    fileclose(wf);
+    return -1;
+  }
+  printf("[pipe] fd0:%d fd1:%d\n",fd0,fd1);
+  return 0;
+}
+
 
 uint64 
 sys_sendfile(void)
@@ -843,7 +886,7 @@ sys_sendfile(void)
   {
     return -1;
   }
-  //__debug_info("out_fd: %d, in_fd: %d, offset: %p, count: %p\n", out_fd, in_fd, offset, count);
+  __debug_info("out_fd: %d, in_fd: %d, offset: %p, count: %p\n", out_fd, in_fd, offset, count);
   
   return filesend(fin,fout,offset,count);
 }

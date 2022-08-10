@@ -52,7 +52,19 @@ sys_getuid(void)
 }
 
 uint64
+sys_geteuid(void)
+{
+  return myproc()->uid;
+}
+
+uint64
 sys_getgid(void)
+{
+  return myproc()->gid;
+}
+
+uint64
+sys_getegid(void)
 {
   return myproc()->gid;
 }
@@ -167,3 +179,37 @@ sys_exit()
   exit(n);
   return 0;
 }
+
+uint64 sys_nanosleep(void) {
+	uint64 addr_sec, addr_usec;
+
+	if (argaddr(0, &addr_sec) < 0) 
+		return -1;
+	if (argaddr(1, &addr_usec) < 0) 
+		return -1;
+
+	struct proc *p = myproc();
+	uint64 sec, usec;
+	if (either_copyin(1, (char*)&sec, addr_sec, sizeof(sec)) < 0) 
+		return -1;
+	if (either_copyin(1, (char*)&usec, addr_usec, sizeof(usec)) < 0) 
+		return -1;
+	int n = sec * 20 + usec / 50000000;
+
+	int mask = p->tmask;
+	if (mask) {
+		printf(") ...\n");
+	}
+	acquire(&p->lock);
+	uint64 tick0 = ticks;
+	while (ticks - tick0 < n / 10) {
+		if (p->killed) {
+			return -1;
+		}
+		sleep(&ticks, &p->lock);
+	}
+	release(&p->lock);
+
+	return 0;
+}
+

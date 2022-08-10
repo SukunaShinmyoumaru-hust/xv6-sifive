@@ -111,6 +111,24 @@ int fileillegal(struct file* f){
   return 0;
 }
 
+void print_f_info(struct file* f){
+  switch (f->type) {
+    case FD_PIPE:
+        printf("[file]PIPE\n");
+        break;
+    case FD_DEVICE:
+        printf("[file]DEVICE name:%d\n",devsw[f->major].name);
+        break;
+    case FD_ENTRY:
+        printf("[file]ENTRY name:%s\n",f->ep->filename);
+        break;
+    case FD_NONE:
+        printf("[file]NONE\n");
+    	return;
+  }
+
+}
+
 void fileiolock(struct file* f){
   switch (f->type) {
     case FD_PIPE:
@@ -332,19 +350,22 @@ filesend(struct file* fin,struct file* fout,uint64 addr,uint64 n){
   }
   //printf("[filesend]want send n:%p\n",n);
   //printf("[filesend]before send fout off:%p\n",fout->off);
+  print_f_info(fin);
+  print_f_info(fout);
   fileiolock(fin);
   fileiolock(fout);
   while(n){
     char buf[512];
     rlen = MIN(n,512);
     rlen = fileinput(fin,0,(uint64)&buf,rlen,off);
+    printf("[filesend] send rlen %p\n",rlen);
     off += rlen;
     n -= rlen;
     if(!rlen){
       break;
     }
     wlen = fileoutput(fout,0,(uint64)&buf,rlen,fout->off);
-    //printf("[filesend] send rlen:%p wlen:%p\n",rlen,wlen);
+    printf("[filesend] send wlen:%p\n",rlen,wlen);
     fout->off += wlen;
     ret += wlen;
   }

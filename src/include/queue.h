@@ -4,6 +4,7 @@
 #include "types.h"
 #include "riscv.h"
 #include "proc.h"
+struct proc;
 
 typedef struct{
   void* chan;
@@ -35,19 +36,34 @@ static inline int queue_empty(queue *q) {
 static inline void queue_push(queue* q,struct proc* p){
 	qlock(q);
 	list_add_before(&q->head,&p->dlist);
+	p->q = (uint64)q;
 	qunlock(q);
 }
 
 static inline struct proc* queue_pop(queue* q){
+	struct proc* p = NULL;
 	if(!queue_empty(q)){
 		qlock(q);
 		struct list* l = list_next(&q->head);
 		list_del(l);
+		p = dlist_entry(l, struct proc, dlist);
+		p->q = 0;
 		qunlock(q);
-		return dlist_entry(l, struct proc, dlist);
-	}else{
-		return NULL;
 	}
+	return p;
+}
+
+static inline int queue_del(struct proc* p){
+	queue* q = (queue*)p->q;
+	struct list* l = &p->dlist;
+	if(q){
+		qlock(q);
+		list_del(l);
+		p->q = 0;
+		qunlock(q);	
+		return 1;	
+	}
+	return 0;
 }
 
 #endif

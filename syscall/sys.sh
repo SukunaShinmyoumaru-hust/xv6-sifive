@@ -34,6 +34,7 @@ entry	35	unlinkat
 entry   48	faccessat
 entry	56	openat
 entry	57	close
+entry   59  pipe2
 entry	61	getdents64
 entry   62	lseek
 entry	63	read
@@ -41,14 +42,18 @@ entry	64	write
 entry	65	readv
 entry	66	writev	
 entry   71	sendfile
+entry   73	ppoll
 entry	79	fstatat 
 entry	80	fstat 
 entry   88  utimensat
 entry	93	exit	
 entry	94	exit_group
 entry	96	set_tid_address
+entry   101 nanosleep
 entry	113	clock_gettime	
 entry	116	syslog	
+entry   129 kill
+entry   131 tgkill
 entry	134	rt_sigaction
 entry	135	rt_sigprocmask	
 entry	139	rt_sigreturn
@@ -58,7 +63,9 @@ entry	160	uname
 entry	172	getpid 
 entry	173	getppid
 entry	174	getuid
+entry	175	geteuid
 entry	176	getgid
+entry	177	getegid
 entry	178	gettid 
 entry	179	sysinfo
 entry	214	brk

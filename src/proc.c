@@ -16,6 +16,7 @@
 #include "include/vma.h"
 #include "include/mmap.h"
 #include "include/pm.h"
+#include "include/errno.h"
 
 #define WAITQ_NUM 100
 
@@ -234,6 +235,7 @@ found:
   p->vma = NULL;
   p->uid = 0;
   p->gid = 0;
+  p->q = NULL;
   // Allocate a trapframe page.
   if((p->trapframe = allocpage()) == NULL){
     release(&p->lock);
@@ -590,6 +592,7 @@ wakeup(void *chan)
 }
 
 
+
 void
 allocparent(struct proc* parent,struct proc* child){
   child->parent = parent;
@@ -688,7 +691,8 @@ wait4pid(int pid,uint64 addr)
       kidpid = child->pid;
       p->proc_tms.cstime += child->proc_tms.stime + child->proc_tms.cstime;
       p->proc_tms.cutime += child->proc_tms.utime + child->proc_tms.cutime;
-      if(addr != 0 && copyout(p->pagetable,addr, (char *)&child->xstate, sizeof(child->xstate)) < 0) {
+      child->xstate <<= 8;
+      if(addr != 0 && copyout(p->pagetable, addr, (char *)&child->xstate, sizeof(child->xstate)) < 0) {
         release(&child->lock);
         release(&p->lock);
         __debug_warn("[wait4pid]pid%d:%s copyout bad\n",p->pid,p->name);
@@ -745,4 +749,45 @@ exit(int n)
   while(1){
   
   }
+}
+
+int kill(int pid,int sig){
+	struct proc* p;
+	for(p = proc; p < &proc[NPROC]; p++){
+		if(p->pid == pid){
+			acquire(&p->lock);
+			if(p->state == SLEEPING){
+				// need to modify...
+				queue_del(p);
+				readyq_push(p);
+				p->state = RUNNABLE;
+			}
+			p->sig_pending.__val[0] |= 1ul << sig;
+			if (0 == p->killed || sig < p->killed) {
+				p->killed = sig;
+			}
+			release(&p->lock);
+			return 0;
+		}
+	}
+  //return -ESRCH;
+  return 0;
+}
+
+static int cmp_parent(int pid,int sid){
+  struct proc* p;
+  for(p = proc;p < &proc[NPROC];p++){
+    if(p->pid == sid) break;
+  }
+  while(p){
+    p = getparent(p);
+    if(!p)break;
+    if(p->pid == pid) return 1;
+  }
+  return 0;
+}
+
+int tgkill(int pid,int tid,int sig){
+  if(!cmp_parent(pid,tid)) return -1;
+  else return kill(tid,sig);
 }

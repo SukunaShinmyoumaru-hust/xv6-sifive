@@ -10,6 +10,7 @@
 #include "include/kalloc.h"
 #include "include/copy.h"
 #include "include/vm.h"
+#include "include/printf.h"
 
 int
 pipealloc(struct file **f0, struct file **f1)
@@ -71,7 +72,8 @@ pipewrite(struct pipe *pi, int user, uint64 addr, int n)
   int i;
   char ch;
   struct proc *pr = myproc();
-
+  
+  printf("[pipe]nread %d nwrite %d n %p\n", pi->nread, pi->nwrite, n);
   for(i = 0; i < n; i++){
     while(pi->nwrite == pi->nread + PIPESIZE){  //DOC: pipewrite-full
       if(pi->readopen == 0 || pr->killed){
@@ -105,6 +107,7 @@ piperead(struct pipe *pi, int user, uint64 addr, int n)
     sleep(&pi->nread, &pi->lock); //DOC: piperead-sleep
   }
   for(i = 0; i < n; i++){  //DOC: piperead-copy
+   
     if(pi->nread == pi->nwrite)
       break;
     ch = pi->data[pi->nread++ % PIPESIZE];
