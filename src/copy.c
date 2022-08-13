@@ -158,8 +158,9 @@ zero_out(uint64 dstva, uint64 len)
   while(len > 0){
     va0 = PGROUNDDOWN(dstva);
     pa0 = walkaddr(pagetable, va0);
-    if(pa0 == NULL)
+    if(pa0 == NULL){
       return -1;
+    }
     n = PGSIZE - (dstva - va0);
     if(n > len)
       n = len;
@@ -168,6 +169,7 @@ zero_out(uint64 dstva, uint64 len)
     len -= n;
     dstva = va0 + PGSIZE;
   }
+  //printf("len:%p\n",len);
   return len;
 }
 

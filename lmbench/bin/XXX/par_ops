@@ -1,1 +1,1 @@
-/home/bq/xiaolu-rv6/lmbench/bin/XXX/lmbench_all par_ops "$@"
+/home/bq/gpipe-rv6/lmbench/bin/XXX/lmbench_all par_ops "$@"

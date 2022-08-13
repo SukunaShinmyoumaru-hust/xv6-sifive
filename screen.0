@@ -1,4 +1,56 @@
+./syscall/sys.sh
+riscv64-unknown-elf-gcc    -c -o src/entry.o src/entry.S
+riscv64-unknown-elf-gcc -Wall -Werror -O -fno-omit-frame-pointer -ggdb -DDEBUG -DWARNING -DERROR -DRAM -DQEMU -MD -mcmodel=medany -ffreestanding -fno-common -nostdlib -mno-relax -I. -I./src -fno-stack-protector -fno-pie -no-pie   -c -o src/bio.o src/bio.c
+riscv64-unknown-elf-gcc    -c -o src/link_disk.o src/link_disk.S
+riscv64-unknown-elf-gcc -Wall -Werror -O -fno-omit-frame-pointer -ggdb -DDEBUG -DWARNING -DERROR -DRAM -DQEMU -MD -mcmodel=medany -ffreestanding -fno-common -nostdlib -mno-relax -I. -I./src -fno-stack-protector -fno-pie -no-pie   -c -o src/ramdisk.o src/ramdisk.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -fno-omit-frame-pointer -ggdb -DDEBUG -DWARNING -DERROR -DRAM -DQEMU -MD -mcmodel=medany -ffreestanding -fno-common -nostdlib -mno-relax -I. -I./src -fno-stack-protector -fno-pie -no-pie   -c -o src/spi.o src/spi.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -fno-omit-frame-pointer -ggdb -DDEBUG -DWARNING -DERROR -DRAM -DQEMU -MD -mcmodel=medany -ffreestanding -fno-common -nostdlib -mno-relax -I. -I./src -fno-stack-protector -fno-pie -no-pie   -c -o src/sd.o src/sd.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -fno-omit-frame-pointer -ggdb -DDEBUG -DWARNING -DERROR -DRAM -DQEMU -MD -mcmodel=medany -ffreestanding -fno-common -nostdlib -mno-relax -I. -I./src -fno-stack-protector -fno-pie -no-pie   -c -o src/diskio.o src/diskio.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -fno-omit-frame-pointer -ggdb -DDEBUG -DWARNING -DERROR -DRAM -DQEMU -MD -mcmodel=medany -ffreestanding -fno-common -nostdlib -mno-relax -I. -I./src -fno-stack-protector -fno-pie -no-pie   -c -o src/disk.o src/disk.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -fno-omit-frame-pointer -ggdb -DDEBUG -DWARNING -DERROR -DRAM -DQEMU -MD -mcmodel=medany -ffreestanding -fno-common -nostdlib -mno-relax -I. -I./src -fno-stack-protector -fno-pie -no-pie   -c -o src/string.o src/string.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -fno-omit-frame-pointer -ggdb -DDEBUG -DWARNING -DERROR -DRAM -DQEMU -MD -mcmodel=medany -ffreestanding -fno-common -nostdlib -mno-relax -I. -I./src -fno-stack-protector -fno-pie -no-pie   -c -o src/intr.o src/intr.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -fno-omit-frame-pointer -ggdb -DDEBUG -DWARNING -DERROR -DRAM -DQEMU -MD -mcmodel=medany -ffreestanding -fno-common -nostdlib -mno-relax -I. -I./src -fno-stack-protector -fno-pie -no-pie   -c -o src/image.o src/image.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -fno-omit-frame-pointer -ggdb -DDEBUG -DWARNING -DERROR -DRAM -DQEMU -MD -mcmodel=medany -ffreestanding -fno-common -nostdlib -mno-relax -I. -I./src -fno-stack-protector -fno-pie -no-pie   -c -o src/proc.o src/proc.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -fno-omit-frame-pointer -ggdb -DDEBUG -DWARNING -DERROR -DRAM -DQEMU -MD -mcmodel=medany -ffreestanding -fno-common -nostdlib -mno-relax -I. -I./src -fno-stack-protector -fno-pie -no-pie   -c -o src/fat32.o src/fat32.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -fno-omit-frame-pointer -ggdb -DDEBUG -DWARNING -DERROR -DRAM -DQEMU -MD -mcmodel=medany -ffreestanding -fno-common -nostdlib -mno-relax -I. -I./src -fno-stack-protector -fno-pie -no-pie   -c -o src/pipe.o src/pipe.c
 riscv64-unknown-elf-gcc -Wall -Werror -O -fno-omit-frame-pointer -ggdb -DDEBUG -DWARNING -DERROR -DRAM -DQEMU -MD -mcmodel=medany -ffreestanding -fno-common -nostdlib -mno-relax -I. -I./src -fno-stack-protector -fno-pie -no-pie   -c -o src/file.o src/file.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -fno-omit-frame-pointer -ggdb -DDEBUG -DWARNING -DERROR -DRAM -DQEMU -MD -mcmodel=medany -ffreestanding -fno-common -nostdlib -mno-relax -I. -I./src -fno-stack-protector -fno-pie -no-pie -march=rv64g -nostdinc -I. -Isrc -c usrinit/initcode.S -o usrinit/initcode.o
+riscv64-unknown-elf-ld -z max-page-size=4096 -N -e start -Ttext 0 -o usrinit/initcode.out usrinit/initcode.o
+riscv64-unknown-elf-objcopy -S -O binary usrinit/initcode.out usrinit/initcode
+rm -f usrinit/initcode.o usrinit/initcode.out usrinit/initcode.d
+riscv64-unknown-elf-gcc    -c -o src/bin.o src/bin.S
+riscv64-unknown-elf-gcc -Wall -Werror -O -fno-omit-frame-pointer -ggdb -DDEBUG -DWARNING -DERROR -DRAM -DQEMU -MD -mcmodel=medany -ffreestanding -fno-common -nostdlib -mno-relax -I. -I./src -fno-stack-protector -fno-pie -no-pie   -c -o src/dev.o src/dev.c
+riscv64-unknown-elf-gcc    -c -o src/swtch.o src/swtch.S
+riscv64-unknown-elf-gcc    -c -o src/trampoline.o src/trampoline.S
+riscv64-unknown-elf-gcc    -c -o src/sig_trampoline.o src/sig_trampoline.S
+riscv64-unknown-elf-gcc -Wall -Werror -O -fno-omit-frame-pointer -ggdb -DDEBUG -DWARNING -DERROR -DRAM -DQEMU -MD -mcmodel=medany -ffreestanding -fno-common -nostdlib -mno-relax -I. -I./src -fno-stack-protector -fno-pie -no-pie   -c -o src/signal.o src/signal.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -fno-omit-frame-pointer -ggdb -DDEBUG -DWARNING -DERROR -DRAM -DQEMU -MD -mcmodel=medany -ffreestanding -fno-common -nostdlib -mno-relax -I. -I./src -fno-stack-protector -fno-pie -no-pie   -c -o src/spinlock.o src/spinlock.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -fno-omit-frame-pointer -ggdb -DDEBUG -DWARNING -DERROR -DRAM -DQEMU -MD -mcmodel=medany -ffreestanding -fno-common -nostdlib -mno-relax -I. -I./src -fno-stack-protector -fno-pie -no-pie   -c -o src/sleeplock.o src/sleeplock.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -fno-omit-frame-pointer -ggdb -DDEBUG -DWARNING -DERROR -DRAM -DQEMU -MD -mcmodel=medany -ffreestanding -fno-common -nostdlib -mno-relax -I. -I./src -fno-stack-protector -fno-pie -no-pie   -c -o src/printf.o src/printf.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -fno-omit-frame-pointer -ggdb -DDEBUG -DWARNING -DERROR -DRAM -DQEMU -MD -mcmodel=medany -ffreestanding -fno-common -nostdlib -mno-relax -I. -I./src -fno-stack-protector -fno-pie -no-pie   -c -o src/pm.o src/pm.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -fno-omit-frame-pointer -ggdb -DDEBUG -DWARNING -DERROR -DRAM -DQEMU -MD -mcmodel=medany -ffreestanding -fno-common -nostdlib -mno-relax -I. -I./src -fno-stack-protector -fno-pie -no-pie   -c -o src/kmalloc.o src/kmalloc.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -fno-omit-frame-pointer -ggdb -DDEBUG -DWARNING -DERROR -DRAM -DQEMU -MD -mcmodel=medany -ffreestanding -fno-common -nostdlib -mno-relax -I. -I./src -fno-stack-protector -fno-pie -no-pie   -c -o src/vm.o src/vm.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -fno-omit-frame-pointer -ggdb -DDEBUG -DWARNING -DERROR -DRAM -DQEMU -MD -mcmodel=medany -ffreestanding -fno-common -nostdlib -mno-relax -I. -I./src -fno-stack-protector -fno-pie -no-pie   -c -o src/plic.o src/plic.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -fno-omit-frame-pointer -ggdb -DDEBUG -DWARNING -DERROR -DRAM -DQEMU -MD -mcmodel=medany -ffreestanding -fno-common -nostdlib -mno-relax -I. -I./src -fno-stack-protector -fno-pie -no-pie   -c -o src/timer.o src/timer.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -fno-omit-frame-pointer -ggdb -DDEBUG -DWARNING -DERROR -DRAM -DQEMU -MD -mcmodel=medany -ffreestanding -fno-common -nostdlib -mno-relax -I. -I./src -fno-stack-protector -fno-pie -no-pie   -c -o src/main.o src/main.c
+riscv64-unknown-elf-gcc    -c -o src/kernelvec.o src/kernelvec.S
+riscv64-unknown-elf-gcc -Wall -Werror -O -fno-omit-frame-pointer -ggdb -DDEBUG -DWARNING -DERROR -DRAM -DQEMU -MD -mcmodel=medany -ffreestanding -fno-common -nostdlib -mno-relax -I. -I./src -fno-stack-protector -fno-pie -no-pie   -c -o src/trap.o src/trap.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -fno-omit-frame-pointer -ggdb -DDEBUG -DWARNING -DERROR -DRAM -DQEMU -MD -mcmodel=medany -ffreestanding -fno-common -nostdlib -mno-relax -I. -I./src -fno-stack-protector -fno-pie -no-pie   -c -o src/copy.o src/copy.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -fno-omit-frame-pointer -ggdb -DDEBUG -DWARNING -DERROR -DRAM -DQEMU -MD -mcmodel=medany -ffreestanding -fno-common -nostdlib -mno-relax -I. -I./src -fno-stack-protector -fno-pie -no-pie   -c -o src/poll.o src/poll.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -fno-omit-frame-pointer -ggdb -DDEBUG -DWARNING -DERROR -DRAM -DQEMU -MD -mcmodel=medany -ffreestanding -fno-common -nostdlib -mno-relax -I. -I./src -fno-stack-protector -fno-pie -no-pie   -c -o src/cpu.o src/cpu.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -fno-omit-frame-pointer -ggdb -DDEBUG -DWARNING -DERROR -DRAM -DQEMU -MD -mcmodel=medany -ffreestanding -fno-common -nostdlib -mno-relax -I. -I./src -fno-stack-protector -fno-pie -no-pie   -c -o src/vma.o src/vma.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -fno-omit-frame-pointer -ggdb -DDEBUG -DWARNING -DERROR -DRAM -DQEMU -MD -mcmodel=medany -ffreestanding -fno-common -nostdlib -mno-relax -I. -I./src -fno-stack-protector -fno-pie -no-pie   -c -o src/mmap.o src/mmap.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -fno-omit-frame-pointer -ggdb -DDEBUG -DWARNING -DERROR -DRAM -DQEMU -MD -mcmodel=medany -ffreestanding -fno-common -nostdlib -mno-relax -I. -I./src -fno-stack-protector -fno-pie -no-pie   -c -o src/uarg.o src/uarg.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -fno-omit-frame-pointer -ggdb -DDEBUG -DWARNING -DERROR -DRAM -DQEMU -MD -mcmodel=medany -ffreestanding -fno-common -nostdlib -mno-relax -I. -I./src -fno-stack-protector -fno-pie -no-pie   -c -o src/exec.o src/exec.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -fno-omit-frame-pointer -ggdb -DDEBUG -DWARNING -DERROR -DRAM -DQEMU -MD -mcmodel=medany -ffreestanding -fno-common -nostdlib -mno-relax -I. -I./src -fno-stack-protector -fno-pie -no-pie   -c -o src/uname.o src/uname.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -fno-omit-frame-pointer -ggdb -DDEBUG -DWARNING -DERROR -DRAM -DQEMU -MD -mcmodel=medany -ffreestanding -fno-common -nostdlib -mno-relax -I. -I./src -fno-stack-protector -fno-pie -no-pie   -c -o src/sysfile.o src/sysfile.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -fno-omit-frame-pointer -ggdb -DDEBUG -DWARNING -DERROR -DRAM -DQEMU -MD -mcmodel=medany -ffreestanding -fno-common -nostdlib -mno-relax -I. -I./src -fno-stack-protector -fno-pie -no-pie   -c -o src/systime.o src/systime.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -fno-omit-frame-pointer -ggdb -DDEBUG -DWARNING -DERROR -DRAM -DQEMU -MD -mcmodel=medany -ffreestanding -fno-common -nostdlib -mno-relax -I. -I./src -fno-stack-protector -fno-pie -no-pie   -c -o src/sysproc.o src/sysproc.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -fno-omit-frame-pointer -ggdb -DDEBUG -DWARNING -DERROR -DRAM -DQEMU -MD -mcmodel=medany -ffreestanding -fno-common -nostdlib -mno-relax -I. -I./src -fno-stack-protector -fno-pie -no-pie   -c -o src/syslog.o src/syslog.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -fno-omit-frame-pointer -ggdb -DDEBUG -DWARNING -DERROR -DRAM -DQEMU -MD -mcmodel=medany -ffreestanding -fno-common -nostdlib -mno-relax -I. -I./src -fno-stack-protector -fno-pie -no-pie   -c -o src/syspoll.o src/syspoll.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -fno-omit-frame-pointer -ggdb -DDEBUG -DWARNING -DERROR -DRAM -DQEMU -MD -mcmodel=medany -ffreestanding -fno-common -nostdlib -mno-relax -I. -I./src -fno-stack-protector -fno-pie -no-pie   -c -o src/syssig.o src/syssig.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -fno-omit-frame-pointer -ggdb -DDEBUG -DWARNING -DERROR -DRAM -DQEMU -MD -mcmodel=medany -ffreestanding -fno-common -nostdlib -mno-relax -I. -I./src -fno-stack-protector -fno-pie -no-pie   -c -o src/sysmem.o src/sysmem.c
+riscv64-unknown-elf-gcc -Wall -Werror -O -fno-omit-frame-pointer -ggdb -DDEBUG -DWARNING -DERROR -DRAM -DQEMU -MD -mcmodel=medany -ffreestanding -fno-common -nostdlib -mno-relax -I. -I./src -fno-stack-protector -fno-pie -no-pie   -c -o src/syscall.o src/syscall.c
 qemu-system-riscv64 -machine sifive_u -bios sbi/fw_jump.elf -kernel src/kernel -smp 5 -nographic
 
 OpenSBI v1.0
@@ -25,7 +77,7 @@ Firmware Size             : 300 KB
 Runtime SBI Version       : 0.3
 
 Domain0 Name              : root
-Domain0 Boot HART         : 2
+Domain0 Boot HART         : 1
 Domain0 HARTs             : 0*,1*,2*,3*,4*
 Domain0 Region00          : 0x0000000002000000-0x000000000200ffff (I)
 Domain0 Region01          : 0x0000000080000000-0x000000008007ffff ()
@@ -35,7 +87,7 @@ Domain0 Next Arg1         : 0x0000000082200000
 Domain0 Next Mode         : S-mode
 Domain0 SysReset          : yes
 
-Boot HART ID              : 2
+Boot HART ID              : 1
 Boot HART Domain          : root
 Boot HART ISA             : rv64imafdcsu
 Boot HART Features        : scounteren,mcounteren
@@ -45,9 +97,9 @@ Boot HART PMP Address Bits: 54
 Boot HART MHPM Count      : 0
 Boot HART MIDELEG         : 0x0000000000000222
 Boot HART MEDELEG         : 0x000000000000b109
-hart 2 enter main() from 0x0000000080200000...
-cpu#1 state:1
-cpu#2 state:0
+hart 1 enter main() from 0x0000000080200000...
+cpu#1 state:0
+cpu#2 state:1
 cpu#3 state:1
 cpu#4 state:1
 kpminit kernel_end: 0x000000008076f000, start_single: 0x0000000087e70000, phystop: 0x0000000088000000, npage 30865
@@ -61,7 +113,7 @@ procinit
 plicinit
 binit
 ramdiskinit ram start:0x0000000080215000
-[fat32_init]hart 2 enter!
+[fat32_init]hart 1 enter!
 [FAT32 init]byts_per_sec: 512
 [FAT32 init]root_clus: 2
 [FAT32 init]sec_per_clus: 1
@@ -71,1223 +123,2621 @@ ramdiskinit ram start:0x0000000080215000
 devinit
 fileinit
 userinit
-hart 2 scheduler!
-hart 3 enter main()...
-kvminithart
-syscall 56:openat
-trapinithart
-hart 3 scheduler!
+hart 1 scheduler!
 hart 4 enter main()...
 kvminithart
+hart 3 enter main()...
 trapinithart
-syscall 23:dup
+kvminithart
 hart 4 scheduler!
-syscall 23:dup
-hart 1 enter main()...
-syscall 221:execve
+hart 2 enter main()...
 kvminithart
 trapinithart
-hart 1 scheduler!
-syscall 96:set_tid_address
-syscall 174:getuid
-syscall 214:brk
-syscall 214:brk
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 172:getpid
-syscall 222:mmap
-syscall 135:rt_sigprocmask
-syscall 134:rt_sigaction
-syscall 173:getppid
-syscall 160:uname
-syscall 17:getcwd
-syscall 56:openat
-syscall 25:fcntl
-syscall 25:fcntl
-syscall 25:fcntl
-syscall 57:close
-syscall 134:rt_sigaction
-syscall 134:rt_sigaction
-syscall 134:rt_sigaction
-syscall 134:rt_sigaction
-syscall 134:rt_sigaction
-syscall 63:read
-[file read]
-[file]ENTRY name:mytest.sh
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 220:clone
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 260:wait4
-syscall 178:gettid
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 57:close
-syscall 134:rt_sigaction
-syscall 221:execve
-syscall 96:set_tid_address
-syscall 174:getuid
-syscall 214:brk
-syscall 214:brk
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 172:getpid
-syscall 222:mmap
-syscall 135:rt_sigprocmask
-syscall 134:rt_sigaction
-syscall 173:getppid
-syscall 160:uname
-syscall 79:fstatat
-syscall 79:fstatat
-syscall 56:openat
-syscall 25:fcntl
-syscall 25:fcntl
-syscall 25:fcntl
-syscall 57:close
-syscall 134:rt_sigaction
-syscall 134:rt_sigaction
-syscall 134:rt_sigaction
-syscall 134:rt_sigaction
-syscall 134:rt_sigaction
-syscall 63:read
-[file read]
-[file]ENTRY name:lua_testcode.sh
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 220:clone
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 260:wait4
-syscall 178:gettid
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 57:close
-syscall 134:rt_sigaction
-syscall 221:execve
-syscall 96:set_tid_address
-syscall 174:getuid
-syscall 214:brk
-syscall 214:brk
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 172:getpid
-syscall 222:mmap
-syscall 135:rt_sigprocmask
-syscall 134:rt_sigaction
-syscall 173:getppid
-syscall 160:uname
-syscall 79:fstatat
-syscall 79:fstatat
-syscall 56:openat
-syscall 25:fcntl
-syscall 25:fcntl
-syscall 25:fcntl
-syscall 57:close
-syscall 134:rt_sigaction
-syscall 134:rt_sigaction
-syscall 134:rt_sigaction
-syscall 134:rt_sigaction
-syscall 134:rt_sigaction
-syscall 63:read
-[file read]
-[file]ENTRY name:test.sh
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 220:clone
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 260:wait4
-syscall 178:gettid
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 57:close
-syscall 134:rt_sigaction
-syscall 221:execve
-syscall 96:set_tid_address
-syscall 214:brk
-syscall 214:brk
-syscall 222:mmap
-syscall 222:mmap
-syscall 113:clock_gettime
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 215:munmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 113:clock_gettime
-syscall 56:openat
-syscall 222:mmap
-syscall 63:read
-[file read]
-[file]ENTRY name:date.lua
-syscall 222:mmap
-syscall 65:readv
-[file read]
-[file]ENTRY name:date.lua
-[file read]
-[file]ENTRY name:date.lua
-syscall 57:close
-syscall 215:munmap
-syscall 135:rt_sigprocmask
-syscall 134:rt_sigaction
-syscall 113:clock_gettime
-syscall 56:openat
-syscall 80:fstat
-syscall 222:mmap
-[file read]
-[file]ENTRY name:localtime
-syscall 57:close
-syscall 134:rt_sigaction
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 94:exit_group
-syscall 93:exit
-syscall 260:wait4
-syscall 64:write
-testcase lua date.lua success
-syscall 63:read
-[file read]
-[file]ENTRY name:test.sh
-syscall 94:exit_group
-syscall 93:exit
-syscall 260:wait4
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 220:clone
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 260:wait4
-syscall 178:gettid
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 57:close
-syscall 134:rt_sigaction
-syscall 221:execve
-syscall 96:set_tid_address
-syscall 174:getuid
-syscall 214:brk
-syscall 214:brk
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 172:getpid
-syscall 222:mmap
-syscall 135:rt_sigprocmask
-syscall 134:rt_sigaction
-syscall 173:getppid
-syscall 160:uname
-syscall 79:fstatat
-syscall 79:fstatat
-syscall 56:openat
-syscall 25:fcntl
-syscall 25:fcntl
-syscall 25:fcntl
-syscall 57:close
-syscall 134:rt_sigaction
-syscall 134:rt_sigaction
-syscall 134:rt_sigaction
-syscall 134:rt_sigaction
-syscall 134:rt_sigaction
-syscall 63:read
-[file read]
-[file]ENTRY name:test.sh
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 220:clone
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 260:wait4
-syscall 178:gettid
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 57:close
-syscall 134:rt_sigaction
-syscall 221:execve
-syscall 96:set_tid_address
-syscall 214:brk
-syscall 214:brk
-syscall 222:mmap
-syscall 222:mmap
-syscall 113:clock_gettime
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 215:munmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 113:clock_gettime
-syscall 56:openat
-syscall 222:mmap
-syscall 63:read
-[file read]
-[file]ENTRY name:file_io.lua
-syscall 222:mmap
-syscall 65:readv
-[file read]
-[file]ENTRY name:file_io.lua
-[file read]
-[file]ENTRY name:file_io.lua
-syscall 215:munmap
-syscall 222:mmap
-syscall 57:close
-syscall 215:munmap
-syscall 135:rt_sigprocmask
-syscall 134:rt_sigaction
-syscall 56:openat
-syscall 222:mmap
-syscall 29:ioctl
-syscall 57:close
-syscall 215:munmap
-syscall 134:rt_sigaction
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 94:exit_group
-syscall 93:exit
-syscall 260:wait4
-syscall 64:write
-testcase lua file_io.lua success
-syscall 63:read
-[file read]
-[file]ENTRY name:test.sh
-syscall 94:exit_group
-syscall 93:exit
-syscall 260:wait4
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 220:clone
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 260:wait4
-syscall 178:gettid
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 57:close
-syscall 134:rt_sigaction
-syscall 221:execve
-syscall 96:set_tid_address
-syscall 174:getuid
-syscall 214:brk
-syscall 214:brk
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 172:getpid
-syscall 222:mmap
-syscall 135:rt_sigprocmask
-syscall 134:rt_sigaction
-syscall 173:getppid
-syscall 160:uname
-syscall 79:fstatat
-syscall 79:fstatat
-syscall 56:openat
-syscall 25:fcntl
-syscall 25:fcntl
-syscall 25:fcntl
-syscall 57:close
-syscall 134:rt_sigaction
-syscall 134:rt_sigaction
-syscall 134:rt_sigaction
-syscall 134:rt_sigaction
-syscall 134:rt_sigaction
-syscall 63:read
-[file read]
-[file]ENTRY name:test.sh
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 220:clone
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 260:wait4
-syscall 178:gettid
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 57:close
-syscall 134:rt_sigaction
-syscall 221:execve
-syscall 96:set_tid_address
-syscall 214:brk
-syscall 214:brk
-syscall 222:mmap
-syscall 222:mmap
-syscall 113:clock_gettime
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 215:munmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 113:clock_gettime
-syscall 56:openat
-syscall 222:mmap
-syscall 63:read
-[file read]
-[file]ENTRY name:max_min.lua
-syscall 222:mmap
-syscall 65:readv
-[file read]
-[file]ENTRY name:max_min.lua
-[file read]
-[file]ENTRY name:max_min.lua
-syscall 215:munmap
-syscall 57:close
-syscall 215:munmap
-syscall 135:rt_sigprocmask
-syscall 134:rt_sigaction
-syscall 134:rt_sigaction
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 94:exit_group
-syscall 93:exit
-syscall 260:wait4
-syscall 64:write
-testcase lua max_min.lua success
-syscall 63:read
-[file read]
-[file]ENTRY name:test.sh
-syscall 94:exit_group
-syscall 93:exit
-syscall 260:wait4
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 220:clone
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 260:wait4
-syscall 178:gettid
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 57:close
-syscall 134:rt_sigaction
-syscall 221:execve
-syscall 96:set_tid_address
-syscall 174:getuid
-syscall 214:brk
-syscall 214:brk
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 172:getpid
-syscall 222:mmap
-syscall 135:rt_sigprocmask
-syscall 134:rt_sigaction
-syscall 173:getppid
-syscall 160:uname
-syscall 79:fstatat
-syscall 79:fstatat
-syscall 56:openat
-syscall 25:fcntl
-syscall 25:fcntl
-syscall 25:fcntl
-syscall 57:close
-syscall 134:rt_sigaction
-syscall 134:rt_sigaction
-syscall 134:rt_sigaction
-syscall 134:rt_sigaction
-syscall 134:rt_sigaction
-syscall 63:read
-[file read]
-[file]ENTRY name:test.sh
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 220:clone
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 260:wait4
-syscall 178:gettid
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 57:close
-syscall 134:rt_sigaction
-syscall 221:execve
-syscall 96:set_tid_address
-syscall 214:brk
-syscall 214:brk
-syscall 222:mmap
-syscall 222:mmap
-syscall 113:clock_gettime
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 215:munmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 113:clock_gettime
-syscall 56:openat
-syscall 222:mmap
-syscall 63:read
-[file read]
-[file]ENTRY name:random.lua
-syscall 222:mmap
-syscall 65:readv
-[file read]
-[file]ENTRY name:random.lua
-[file read]
-[file]ENTRY name:random.lua
-syscall 57:close
-syscall 215:munmap
-syscall 135:rt_sigprocmask
-syscall 134:rt_sigaction
-syscall 113:clock_gettime
-syscall 134:rt_sigaction
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 94:exit_group
-syscall 93:exit
-syscall 260:wait4
-syscall 64:write
-testcase lua random.lua success
-syscall 63:read
-[file read]
-[file]ENTRY name:test.sh
-syscall 94:exit_group
-syscall 93:exit
-syscall 260:wait4
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 220:clone
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 260:wait4
-syscall 178:gettid
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 57:close
-syscall 134:rt_sigaction
-syscall 221:execve
-syscall 96:set_tid_address
-syscall 174:getuid
-syscall 214:brk
-syscall 214:brk
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 172:getpid
-syscall 222:mmap
-syscall 135:rt_sigprocmask
-syscall 134:rt_sigaction
-syscall 173:getppid
-syscall 160:uname
-syscall 79:fstatat
-syscall 79:fstatat
-syscall 56:openat
-syscall 25:fcntl
-syscall 25:fcntl
-syscall 25:fcntl
-syscall 57:close
-syscall 134:rt_sigaction
-syscall 134:rt_sigaction
-syscall 134:rt_sigaction
-syscall 134:rt_sigaction
-syscall 134:rt_sigaction
-syscall 63:read
-[file read]
-[file]ENTRY name:test.sh
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 220:clone
-syscall 178:gettid
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 57:close
-syscall 134:rt_sigaction
-syscall 221:execve
-syscall 96:set_tid_address
-syscall 214:brk
-syscall 214:brk
-syscall 222:mmap
-syscall 222:mmap
-syscall 113:clock_gettime
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 260:wait4
-syscall 222:mmap
-syscall 215:munmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 113:clock_gettime
-syscall 56:openat
-syscall 222:mmap
-syscall 63:read
-[file read]
-[file]ENTRY name:remove.lua
-syscall 222:mmap
-syscall 65:readv
-[file read]
-[file]ENTRY name:remove.lua
-[file read]
-[file]ENTRY name:remove.lua
-syscall 215:munmap
-syscall 57:close
-syscall 215:munmap
-syscall 135:rt_sigprocmask
-syscall 134:rt_sigaction
-syscall 56:openat
-syscall 222:mmap
-syscall 57:close
-syscall 215:munmap
-syscall 35:unlinkat
-syscall 134:rt_sigaction
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 94:exit_group
-syscall 93:exit
-syscall 260:wait4
-syscall 64:write
-testcase lua remove.lua success
-syscall 63:read
-[file read]
-[file]ENTRY name:test.sh
-syscall 94:exit_group
-syscall 93:exit
-syscall 260:wait4
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 220:clone
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 260:wait4
-syscall 178:gettid
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 57:close
-syscall 134:rt_sigaction
-syscall 221:execve
-syscall 96:set_tid_address
-syscall 174:getuid
-syscall 214:brk
-syscall 214:brk
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 172:getpid
-syscall 222:mmap
-syscall 135:rt_sigprocmask
-syscall 134:rt_sigaction
-syscall 173:getppid
-syscall 160:uname
-syscall 79:fstatat
-syscall 79:fstatat
-syscall 56:openat
-syscall 25:fcntl
-syscall 25:fcntl
-syscall 25:fcntl
-syscall 57:close
-syscall 134:rt_sigaction
-syscall 134:rt_sigaction
-syscall 134:rt_sigaction
-syscall 134:rt_sigaction
-syscall 134:rt_sigaction
-syscall 63:read
-[file read]
-[file]ENTRY name:test.sh
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 220:clone
-syscall 178:gettid
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 57:close
-syscall 134:rt_sigaction
-syscall 221:execve
-syscall 96:set_tid_address
-syscall 214:brk
-syscall 214:brk
-syscall 222:mmap
-syscall 222:mmap
-syscall 113:clock_gettime
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 215:munmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 113:clock_gettime
-syscall 56:openat
-syscall 222:mmap
-syscall 63:read
-[file read]
-[file]ENTRY name:round_num.lua
-syscall 222:mmap
-syscall 65:readv
-[file read]
-[file]ENTRY name:round_num.lua
-[file read]
-[file]ENTRY name:round_num.lua
-syscall 57:close
-syscall 215:munmap
-syscall 135:rt_sigprocmask
-syscall 134:rt_sigaction
-syscall 134:rt_sigaction
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 94:exit_group
-syscall 93:exit
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 260:wait4
-syscall 260:wait4
-syscall 64:write
-testcase lua round_num.lua success
-syscall 63:read
-[file read]
-[file]ENTRY name:test.sh
-syscall 94:exit_group
-syscall 93:exit
-syscall 260:wait4
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 220:clone
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 260:wait4
-syscall 178:gettid
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 57:close
-syscall 134:rt_sigaction
-syscall 221:execve
-syscall 96:set_tid_address
-syscall 174:getuid
-syscall 214:brk
-syscall 214:brk
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 172:getpid
-syscall 222:mmap
-syscall 135:rt_sigprocmask
-syscall 134:rt_sigaction
-syscall 173:getppid
-syscall 160:uname
-syscall 79:fstatat
-syscall 79:fstatat
-syscall 56:openat
-syscall 25:fcntl
-syscall 25:fcntl
-syscall 25:fcntl
-syscall 57:close
-syscall 134:rt_sigaction
-syscall 134:rt_sigaction
-syscall 134:rt_sigaction
-syscall 134:rt_sigaction
-syscall 134:rt_sigaction
-syscall 63:read
-[file read]
-[file]ENTRY name:test.sh
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 220:clone
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 260:wait4
-syscall 178:gettid
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 57:close
-syscall 134:rt_sigaction
-syscall 221:execve
-syscall 96:set_tid_address
-syscall 214:brk
-syscall 214:brk
-syscall 222:mmap
-syscall 222:mmap
-syscall 113:clock_gettime
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 215:munmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 113:clock_gettime
-syscall 56:openat
-syscall 222:mmap
-syscall 63:read
-[file read]
-[file]ENTRY name:sin30.lua
-syscall 222:mmap
-syscall 65:readv
-[file read]
-[file]ENTRY name:sin30.lua
-[file read]
-[file]ENTRY name:sin30.lua
-syscall 57:close
-syscall 215:munmap
-syscall 135:rt_sigprocmask
-syscall 134:rt_sigaction
-syscall 134:rt_sigaction
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 94:exit_group
-syscall 93:exit
-syscall 260:wait4
-syscall 64:write
-testcase lua sin30.lua success
-syscall 63:read
-[file read]
-[file]ENTRY name:test.sh
-syscall 94:exit_group
-syscall 93:exit
-syscall 260:wait4
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 220:clone
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 260:wait4
-syscall 178:gettid
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 57:close
-syscall 134:rt_sigaction
-syscall 221:execve
-syscall 96:set_tid_address
-syscall 174:getuid
-syscall 214:brk
-syscall 214:brk
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 172:getpid
-syscall 222:mmap
-syscall 135:rt_sigprocmask
-syscall 134:rt_sigaction
-syscall 173:getppid
-syscall 160:uname
-syscall 79:fstatat
-syscall 79:fstatat
-syscall 56:openat
-syscall 25:fcntl
-syscall 25:fcntl
-syscall 25:fcntl
-syscall 57:close
-syscall 134:rt_sigaction
-syscall 134:rt_sigaction
-syscall 134:rt_sigaction
-syscall 134:rt_sigaction
-syscall 134:rt_sigaction
-syscall 63:read
-[file read]
-[file]ENTRY name:test.sh
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 220:clone
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 260:wait4
-syscall 178:gettid
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 57:close
-syscall 134:rt_sigaction
-syscall 221:execve
-syscall 96:set_tid_address
-syscall 214:brk
-syscall 214:brk
-syscall 222:mmap
-syscall 222:mmap
-syscall 113:clock_gettime
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 215:munmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 113:clock_gettime
-syscall 56:openat
-syscall 222:mmap
-syscall 63:read
-[file read]
-[file]ENTRY name:sort.lua
-syscall 222:mmap
-syscall 65:readv
-[file read]
-[file]ENTRY name:sort.lua
-[file read]
-[file]ENTRY name:sort.lua
-syscall 215:munmap
-syscall 57:close
-syscall 215:munmap
-syscall 135:rt_sigprocmask
-syscall 134:rt_sigaction
-syscall 134:rt_sigaction
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 94:exit_group
-syscall 93:exit
-syscall 260:wait4
-syscall 64:write
-testcase lua sort.lua success
-syscall 63:read
-[file read]
-[file]ENTRY name:test.sh
-syscall 94:exit_group
-syscall 93:exit
-syscall 260:wait4
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 220:clone
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 260:wait4
-syscall 178:gettid
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 57:close
-syscall 134:rt_sigaction
-syscall 221:execve
-syscall 96:set_tid_address
-syscall 174:getuid
-syscall 214:brk
-syscall 214:brk
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 172:getpid
-syscall 222:mmap
-syscall 135:rt_sigprocmask
-syscall 134:rt_sigaction
-syscall 173:getppid
-syscall 160:uname
-syscall 79:fstatat
-syscall 79:fstatat
-syscall 56:openat
-syscall 25:fcntl
-syscall 25:fcntl
-syscall 25:fcntl
-syscall 57:close
-syscall 134:rt_sigaction
-syscall 134:rt_sigaction
-syscall 134:rt_sigaction
-syscall 134:rt_sigaction
-syscall 134:rt_sigaction
-syscall 63:read
-[file read]
-[file]ENTRY name:test.sh
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 220:clone
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 260:wait4
-syscall 178:gettid
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 57:close
-syscall 134:rt_sigaction
-syscall 221:execve
-syscall 96:set_tid_address
-syscall 214:brk
-syscall 214:brk
-syscall 222:mmap
-syscall 222:mmap
-syscall 113:clock_gettime
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 215:munmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 113:clock_gettime
-syscall 56:openat
-syscall 222:mmap
-syscall 63:read
-[file read]
-[file]ENTRY name:strings.lua
-syscall 222:mmap
-syscall 65:readv
-[file read]
-[file]ENTRY name:strings.lua
-[file read]
-[file]ENTRY name:strings.lua
-syscall 215:munmap
-syscall 57:close
-syscall 215:munmap
-syscall 135:rt_sigprocmask
-syscall 134:rt_sigaction
-syscall 134:rt_sigaction
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 215:munmap
-syscall 94:exit_group
-syscall 93:exit
-syscall 260:wait4
-syscall 64:write
-testcase lua strings.lua success
-syscall 63:read
-[file read]
-[file]ENTRY name:test.sh
-syscall 94:exit_group
-syscall 93:exit
-syscall 260:wait4
-syscall 63:read
-[file read]
-[file]ENTRY name:lua_testcode.sh
-syscall 94:exit_group
-syscall 93:exit
-syscall 260:wait4
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 220:clone
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 260:wait4
-syscall 178:gettid
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 57:close
-syscall 134:rt_sigaction
-syscall 221:execve
-syscall 96:set_tid_address
-syscall 174:getuid
-syscall 214:brk
-syscall 214:brk
-syscall 222:mmap
-syscall 222:mmap
-syscall 222:mmap
-syscall 172:getpid
-syscall 222:mmap
-syscall 135:rt_sigprocmask
-syscall 134:rt_sigaction
-syscall 173:getppid
-syscall 160:uname
-syscall 79:fstatat
-syscall 79:fstatat
-syscall 56:openat
-syscall 25:fcntl
-syscall 25:fcntl
-syscall 25:fcntl
-syscall 57:close
-syscall 134:rt_sigaction
-syscall 134:rt_sigaction
-syscall 134:rt_sigaction
-syscall 134:rt_sigaction
-syscall 134:rt_sigaction
-syscall 63:read
-[file read]
-[file]ENTRY name:busybox_testcode.sh
-syscall 59:pipe2
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 220:clone
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 57:close
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 220:clone
-syscall 178:gettid
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 57:close
-syscall 134:rt_sigaction
-syscall 57:close
-syscall 24:dup3
-syscall 57:close
-syscall 222:mmap
-syscall 221:execve
-syscall 178:gettid
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 57:close
-syscall 134:rt_sigaction
-syscall 24:dup3
-syscall 57:close
-syscall 73:ppoll
-syscall 63:read
-[file read]
-[file]PIPE
-syscall 135:rt_sigprocmask
-syscall 135:rt_sigprocmask
-syscall 57:close
-syscall 260:wait4
-syscall 96:set_tid_address
-syscall 174:getuid
-syscall 56:openat
-syscall 71:sendfile
-[filesend]-----start-----
-[filesend]echo "#### independent command test"
-ash -c exit
-sh -c exit
-basename /aaa/bbb
-cal
-date 
-df 
-dirname /aaa/bbb
-dmesg 
-du
-expr 1 + 1
-false
-true
-which ls
-uname
-uptime
-printf "abc\n"
-ps
-pwd
-free
-hwclock
-kill 10
-ls
-sleep 1
-echo "#### file opration test"
-touch test.txt
-echo "hello world" > test.txt
-cat test.txt
-cut -c 3 test.txt
-od test.txt
-head test.txt
-tail test.txt 
-hexdump -C test.txt 
-md5sum test.txt
-echo "ccccccc" >> test.txt
-echo "bbbbbbb" >> test.txt
-echo "aaaaaaa" >> test.txt
-echo "2222222" >> test.txt
-echo "1111111" >> test.txt
-echo "bbbbbbb" >> test.txt
-sort test.txt | ./busybox uniq
-stat test.txt
-strings test.txt 
-wc test.txt
-[ -f test.txt ]
-more test.txt
-rm test.txt
-mkdir test_dir
-mv test_dir test
-rmdir test
-grep hello busybox_cmd.txt
-cp busybox_cmd.txt busybox_cmd.bak
-rm busybox_cmd.bak
-find -name "busybox_cmd.txt"
-
-[filesend]-----end-----
-syscall 57:close
-syscall 94:exit_group
-syscall 93:exit
-syscall 94:exit_group
-syscall 93:exit
-syscall 260:wait4
-syscall 260:wait4
-syscall 63:read
-[file read]
-[file]ENTRY name:busybox_testcode.sh
-syscall 94:exit_group
-syscall 93:exit
-syscall 260:wait4
-syscall 63:read
-[file read]
-[file]ENTRY name:mytest.sh
-syscall 94:exit_group
-syscall 93:exit
+hart 2 scheduler!
+trapinithart
+hart 3 scheduler!
+len:0x0000000000000000
+/dev/zero: Success
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+len:0x0000000000000000
+/dev/zero: Invalid argument
+Simple read: 0.9096 microseconds
 QEMU: Terminated
 

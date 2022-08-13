@@ -170,6 +170,19 @@ allocpid() {
 }
 
 
+
+struct proc*
+findproc(int pid)
+{
+  for(struct proc* p = proc;p!=proc+NPROC;p++){
+    if(p->pid == pid&& p->state !=UNUSED){
+      return p;
+    }
+  }
+  return NULL;
+}
+
+
 // free a proc structure and the data hanging from it,
 // including user pages.
 // p->lock must be held.

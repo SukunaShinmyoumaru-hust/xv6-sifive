@@ -19,7 +19,6 @@ sys_clock_gettime(void){
 
 	uint64 tmp_ticks = r_time();
 	struct timespec tsp;
-	
 
 	switch (tid)
 	{
@@ -28,6 +27,7 @@ sys_clock_gettime(void){
 		break;
 	
 	default:
+		__debug_warn("[clock gettime]no such support\n");
 		break;
 	}
 	//printf("[clock gettime] tsp sec:%p nsec:%p\n",tsp.tv_sec,tsp.tv_sec);
@@ -147,10 +147,11 @@ uint64 sys_setitimer(void)
 
 	if (either_copyin(1, (char*)&newval, newptr, sizeof(struct itimerval)) < 0)
 		return -EFAULT;	
-
+/*
 	__debug_info("sys_setitimer", "new={%ds|%dus, %ds|%dus}\n",
 				newval.it_interval.sec, newval.it_interval.usec, newval.it_value.sec, newval.it_value.usec);
-	__debug_info("[sys_setitimer] return 0\n");
+*/
+	//__debug_info("[sys_setitimer] return 0\n");
 	return 0;
 }
 

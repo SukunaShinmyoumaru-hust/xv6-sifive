@@ -61,6 +61,9 @@ info:
 all:
 	./musl-make
 
+debug-all:
+	./debug-make
+
 release: scripts/mkrelease
 	scripts/mkrelease
 

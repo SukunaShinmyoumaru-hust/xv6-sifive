@@ -19,5 +19,5 @@
 #define SOCKET       1919810
 
 #define CLK_FREQ 		12500000 
-#define INTERVAL 	(CLK_FREQ / 20)
+#define INTERVAL 	(CLK_FREQ)
 #endif

@@ -96,6 +96,50 @@ uint64 sys_rt_sigaction(void) {
 	return 0;
 }
 
+//int prlimit(pid_t pid, int resource, const struct rlimit *new_limit,struct rlimit *old_limit);
+uint64
+sys_prlimit64(void){
+  //printf("prlimit64\n");
+  int pid;
+  int resource;
+  uint64 newrlimitaddr;
+  uint64 oldrlimitaddr;
+  struct rlimit new_limit;
+  struct rlimit old_limit;
+  struct proc* p = myproc();
+  struct proc* limitp = pid==0?p:findproc(pid);
+  if(!limitp)return -1;
+  if(argint(0,&pid)<0){
+    return -1;
+  }
+  if(argint(1,&resource)<0){
+    return -1;
+  }
+  newrlimitaddr = argstruct(2,&new_limit,sizeof(new_limit));
+  oldrlimitaddr = argstruct(3,&old_limit,sizeof(old_limit));
+  if(newrlimitaddr<0||oldrlimitaddr<0)return -1;
+  
+  printf("[prlimit]pid:%d resource:%d\n",pid,resource);
+  if(newrlimitaddr)printf("[prlimit]new limit %d %d\n",new_limit.rlim_cur,new_limit.rlim_max);
+  else printf("[prlimit]new limit (nil)\n");
+  if(oldrlimitaddr)printf("[prlimit]old limit %d %d\n",old_limit.rlim_cur,old_limit.rlim_max);
+  else printf("[prlimit]old limit (nil)\n");
+  
+  switch(resource){
+    case RLIMIT_NOFILE:
+      if(oldrlimitaddr){
+        old_limit.rlim_cur = old_limit.rlim_max = NOFILEMAX(limitp);
+        if(copyout(p->pagetable,oldrlimitaddr,(char*)&old_limit,sizeof(old_limit))<0)return -1;
+      }
+      if(newrlimitaddr){
+        limitp->filelimit = MIN(new_limit.rlim_cur,new_limit.rlim_max);
+      }
+    default:
+    	return -1;
+  }
+  return 0;
+}
+
 uint64 sys_kill(){
   int sig;
   int pid;
