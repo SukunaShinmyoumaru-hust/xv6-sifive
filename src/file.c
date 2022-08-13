@@ -164,7 +164,7 @@ fileinput(struct file* f, int user, uint64 addr, int n, uint64 off){
   uint64 r = 0;
   switch (f->type) {
     case FD_PIPE:
-        r = piperead(f->pipe, addr, n);
+        r = piperead(f->pipe, user, addr, n);
         break;
     case FD_DEVICE:
         r = (devsw + f->major)->read(user, addr, n);
@@ -183,7 +183,7 @@ fileoutput(struct file* f, int user, uint64 addr, int n, uint64 off){
   uint64 r = 0;
   switch (f->type) {
     case FD_PIPE:
-        r = pipewrite(f->pipe, addr, n);
+        r = pipewrite(f->pipe, user, addr, n);
         break;
     case FD_DEVICE:
         r = (devsw + f->major)->write(user, addr, n);
@@ -264,10 +264,12 @@ fileread(struct file *f, uint64 addr, int n)
   if(f->readable == 0){
     return -1;
   }
-
+  //printf("[file read]\n");
+  //print_f_info(f);
   switch (f->type) {
     case FD_PIPE:
-        r = piperead(f->pipe, addr, n);
+        r = piperead(f->pipe, 1, addr, n);
+        if(r<0)r = 0;
         break;
     case FD_DEVICE:
         if(f->major < 0 || f->major >= getdevnum() || !devsw[f->major].read)
@@ -286,6 +288,7 @@ fileread(struct file *f, uint64 addr, int n)
     default:
       panic("fileread");
   }
+  //printf("[file read]r:%p\n",r);
   return r;
 }
 
@@ -299,7 +302,7 @@ filewrite(struct file *f, uint64 addr, int n)
   if(f->writable == 0)
     return -1;
   if(f->type == FD_PIPE){
-    ret = pipewrite(f->pipe, addr, n);
+    ret = pipewrite(f->pipe, 1, addr, n);
   } else if(f->type == FD_DEVICE){
     if(f->major < 0 || f->major >= getdevnum() || !devsw[f->major].write)
       return -1;
@@ -358,8 +361,13 @@ filesend(struct file* fin,struct file* fout,uint64 addr,uint64 n){
     if(!rlen){
       break;
     }
+    if(rlen<0){
+      fileiounlock(fout);
+      fileiounlock(fin);
+      return rlen;
+    }
     wlen = fileoutput(fout,0,(uint64)&buf,rlen,fout->off);
-    //printf("[filesend] send wlen:%p\n",rlen,wlen);
+    //printf("[filesend] send wlen:%p\n",wlen);
     fout->off += wlen;
     ret += wlen;
     //printf("[filesend]-----start-----\n");
@@ -377,6 +385,7 @@ filesend(struct file* fin,struct file* fout,uint64 addr,uint64 n){
   }else{
     fin->off = off;
   }
+  //printf("[filesend]ret:%p\n",ret);
   return ret;
 }
 

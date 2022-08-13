@@ -63,6 +63,7 @@ procinit(){
       p->parent = NULL;
       p->killed = 0;
       p->filelimit = NOFILE;
+      p->umask = 0;
   }
   __debug_info("procinit\n");
 }
@@ -233,6 +234,7 @@ allocproc(struct proc *pp, int thread_create)
   return NULL;
 
 found:
+  p->umask = 0;
   p->pid = allocpid();
   p->killed = 0;
   p->mf = NULL;

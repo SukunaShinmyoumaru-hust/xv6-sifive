@@ -236,7 +236,7 @@ static int pipereadable(struct pipe *pi, int immediate)
 }
 
 int
-pipewrite(struct pipe *pi, uint64 addr, int n)
+pipewrite(struct pipe *pi,int user, uint64 addr, int n)
 {
 	int i, m;
 	struct wait_node wait;
@@ -254,7 +254,6 @@ pipewrite(struct pipe *pi, uint64 addr, int n)
 		}
 
 	}
-
 	char *const pipebound = pi->pdata + PIPESIZE(pi);
 	for (i = 0; i < n;) {
 		if ((m = pipewritable(pi)) < 0) {
@@ -263,7 +262,7 @@ pipewrite(struct pipe *pi, uint64 addr, int n)
 		}
 		m = (PIPESIZE(pi) - m < n - i) ?	// amount of bytes to write
 			PIPESIZE(pi) - m : n - i;
-
+		
 		int mm = m > PIPESIZE(pi) / 2 ? (PIPESIZE(pi) / 2) : m;
 		while (m > 0) {					// pipe is a loop in a buf
 			m -= mm;
@@ -271,7 +270,7 @@ pipewrite(struct pipe *pi, uint64 addr, int n)
 				char *paddr = pi->pdata + pi->nwrite % PIPESIZE(pi);
 				int count = (pipebound - paddr < mm) ? pipebound - paddr : mm;
 
-				if (either_copyin(1,paddr, addr + i, count) < 0) {
+				if (either_copyin(user,paddr, addr + i, count) < 0) {
 					// n = 0;
 					// break;
 					goto out2;
@@ -297,7 +296,7 @@ out:
 }
 
 int
-piperead(struct pipe *pi, uint64 addr, int n)
+piperead(struct pipe *pi,int user, uint64 addr, int n)
 {
 	int tot = 0, m;
 	struct wait_node wait;
@@ -321,7 +320,7 @@ piperead(struct pipe *pi, uint64 addr, int n)
 				char *paddr = pi->pdata + pi->nread % PIPESIZE(pi);
 				int count = (pipebound - paddr < mm - i) ? pipebound - paddr : mm - i;
 
-				if (either_copyout(1, addr + i, paddr, count) < 0) {
+				if (either_copyout(user, addr + i, paddr, count) < 0) {
 					// n = 0;			// halt the do-while loop
 					// break;
 					goto out2;

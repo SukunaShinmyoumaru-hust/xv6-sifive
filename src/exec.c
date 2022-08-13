@@ -356,7 +356,8 @@ exec(char *path, char **argv, char **env)
   // arguments to user main(argc, argv)
   // argc is returned via the system call return
   // value, which goes in a0.
-  np->trapframe->a0 = argc;
+  //np->trapframe->a0 = argc;
+  np->trapframe->a0 = 0;
   np->trapframe->a1 = sp+8;
   
   for(last=s=path; *s; s++)
