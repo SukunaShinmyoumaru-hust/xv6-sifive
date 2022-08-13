@@ -180,6 +180,18 @@ stackdisplay(pagetable_t pagetable,uint64 sp,uint64 sz)
     else printf("addr %p value (nil)\n",i);
   }
 }
+
+void zerocheck(pagetable_t pagetable, uint64 va,int len){
+  printf("[exec] check %p\n",va);
+  char* pa = (void*)kwalkaddr1(pagetable,va);
+  if(pa){
+    printf("[exec] set zero at va:%p pa:%p\n",va,pa);
+    for(int i = 0;i*8<len;i++){
+      *(pa+i) = 0;
+    }
+  }
+  
+}
   
 
 int
@@ -198,12 +210,13 @@ exec(char *path, char **argv, char **env)
   struct dirent *ep;
   np->trapframe = allocpage();
   memcpy(np->trapframe,p->trapframe,sizeof(struct trapframe));
-  //__debug_warn("[exec] exec %s\n",path);
   /*
+  __debug_warn("[exec] exec %s\n",path);
   for(int aaa = 0;argv[aaa];aaa++){
     __debug_warn("[exec] exec argv[%d] %s\n",aaa,argv[aaa]);
   }
   */
+  
   if ((proc_pagetable(np, 0, 0)) == NULL) {
     __debug_warn("[exec]vma init bad\n");
     goto bad;

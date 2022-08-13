@@ -20,29 +20,53 @@ extern char sacrifice_start[];
 extern uint64 sacrifice_size;
 extern char localtime[];
 extern uint64 localtime_size;
+extern char mounts[];
+extern uint64 mounts_size;
+extern char meminfo[];
+extern uint64 meminfo_size;
 
 int devinit()
 {
+  int err = 0;
   devnum = 0;
-  dev = create(NULL,"/dev",T_DIR,0);
+  dev = create(NULL,"/dev",T_DIR,0, &err);
   eunlock(dev);
   struct dirent* ep;
-  ep = create(NULL,"/etc/passwd", T_FILE, 0);
+  ep = create(NULL,"/etc/passwd", T_FILE, 0, &err);
   eunlock(ep);
   eput(ep);
-  ep = create(NULL,"/etc/localtime", T_FILE, 0);
+  ep = create(NULL,"/etc/localtime", T_FILE, 0, &err);
   ewrite(ep, 0, (uint64)localtime, 0, localtime_size);
   eunlock(ep);
   eput(ep);
-  ep = create(NULL,"/mytest.sh",T_FILE,0);
+  ep = create(NULL,"/etc/adjtime", T_FILE, 0, &err);
+  eunlock(ep);
+  eput(ep);
+  ep = create(NULL,"/etc/group", T_FILE, 0, &err);
+  eunlock(ep);
+  eput(ep);
+  ep = create(NULL, "/proc/mounts", T_FILE, 0, &err);
+  ewrite(ep, 0, (uint64)mounts, 0, mounts_size);
+  eunlock(ep);
+  eput(ep);
+  ep = create(NULL, "/proc/meminfo", T_FILE, 0, &err);
+  ewrite(ep, 0, (uint64)meminfo, 0, meminfo_size);
+  eunlock(ep);
+  eput(ep);
+  ep = create(NULL,"/mytest.sh",T_FILE,0, &err);
   ewrite(ep, 0, (uint64)sacrifice_start, 0, sacrifice_size);
+  eunlock(ep);
+  eput(ep);
+  ep = create(NULL,"/bin/ls",T_FILE,0, &err);
   eunlock(ep);
   eput(ep);
   __debug_info("devinit\n");
   memset(devsw,0,NDEV*sizeof(struct devsw));
   allocdev("console",consoleread,consolewrite);
+  allocdev("tty",consoleread,consolewrite);
   allocdev("null",nullread,nullwrite);
   allocdev("zero",zeroread,zerowrite);
+  allocdev("rtc",rtcread,rtcwrite);
   return 0;
 }
 
@@ -73,6 +97,18 @@ devlookup(char *name)
     }
   }
   return -1;
+}
+
+int
+rtcread(int user_dst, uint64 addr, int n)
+{
+  return 0;
+}
+
+int
+rtcwrite(int user_dst, uint64 addr, int n)
+{
+  return 0;
 }
 
 int
@@ -151,7 +187,7 @@ int
 devkstat(struct devsw* mydev, struct kstat* st){
     st->st_dev = mydev-devsw;
     st->st_size = 0;
-    st->st_blksize = 0;
+    st->st_blksize = 128;
     st->st_blocks = 0;
     st->st_atime_nsec = 0;
     st->st_atime_sec = 0;
@@ -163,8 +199,8 @@ devkstat(struct devsw* mydev, struct kstat* st){
     st->st_gid = 0;
     st->st_rdev = 0;
     st->st_nlink = 1;
-    st->st_ino = 0;
-    st->st_mode = 0;
+    st->st_ino = hashpath(mydev->name);
+    st->st_mode = S_IFCHR;
   return 0;
 }
 

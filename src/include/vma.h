@@ -29,6 +29,7 @@ struct vma *alloc_vma(struct proc *p, enum segtype type, uint64 addr, uint64 sz,
 struct vma* type_locate_vma(struct vma *head, enum segtype type);
 struct vma *addr_locate_vma(struct vma*head, uint64 addr);
 struct vma *addr_sz_locate_vma(struct vma*head, uint64 addr, uint64 sz);
+struct vma *part_locate_vma(struct vma *head, uint64 start, uint64 end);
 struct vma *alloc_mmap_vma(struct proc *p, int flags, uint64 addr, uint64 sz, int perm, int fd ,uint64 f_off);
 struct vma *alloc_stack_vma(struct proc *p, uint64 addr, int perm);
 struct vma *alloc_addr_heap_vma(struct proc *p, uint64 addr, int perm);

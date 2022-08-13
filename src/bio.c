@@ -35,14 +35,14 @@ struct cache{
 } corrupt,bcache;
 
 extern struct fs FatFs[FSNUM];
-
+extern int disk_init_flag;
 void
 binit(void)
 {
   struct buf *b;
 
   initlock(&bcache.lock, "bcache");
-  
+  disk_init_flag = 0;
   // Create linked list of buffers
   bcache.head.prev = &bcache.head;
   bcache.head.next = &bcache.head;

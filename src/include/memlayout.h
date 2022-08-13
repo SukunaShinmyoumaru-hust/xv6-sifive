@@ -64,6 +64,7 @@
 // local interrupt controller, which contains the timer.
 #define CLINT                   0x02000000L
 #define CLINT_V                 (CLINT + VIRT_OFFSET)
+#define CLINT_VMTIME             (CLINT_V + 0xBFF8)
 
 // virtio mmio interface
 #define VIRTIO0 0x10001000

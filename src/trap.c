@@ -13,7 +13,6 @@
 #include "include/console.h"
 #include "include/timer.h"
 #include "include/disk.h"
-#include "include/debug.h"
 
 extern char trampoline[], uservec[], userret[];
 
@@ -124,8 +123,11 @@ usertrap(void)
 
 
   // give up the CPU if this is a timer interrupt.
-  if(which_dev == 2)
+  if(which_dev == 2){
     yield();
+    p->ivswtch += 1;
+  }
+    
   //printf("[usertrap] end epc:%p\n",p->trapframe->epc);
   usertrapret();
 }

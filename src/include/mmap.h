@@ -29,5 +29,6 @@ typedef struct vma map_fix;
 uint64 do_mmap(uint64 start, uint64 len,int prot,int flags,int fd, off_t offset);
 uint64 do_munmap(struct proc* np,uint64 start, uint64 len);
 void  free_map_fix(struct proc* p);
+map_fix * find_map_fix(struct proc *p, uint64 start, uint64 len);
 
 #endif

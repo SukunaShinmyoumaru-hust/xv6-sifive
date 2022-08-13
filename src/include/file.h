@@ -10,6 +10,7 @@ struct iovec {
   uint iov_len;     /* Number of bytes to transfer */
 };
 
+struct poll_table;
 
 struct file {
   enum { FD_NONE, FD_PIPE, FD_ENTRY, FD_DEVICE } type;
@@ -20,6 +21,7 @@ struct file {
   struct dirent *ep;
   uint64 off;          // FD_ENTRY
   short major;       // FD_DEVICE
+  uint32 (*poll)(struct file *, struct poll_table *);
   uint64 t0_sec;
   uint64 t0_nsec;
   uint64 t1_sec;
@@ -50,6 +52,7 @@ struct file*    filealloc(void);
 void            fileclose(struct file*);
 struct file*    filedup(struct file*);
 void            fileinit(void);
+void            print_f_info(struct file* f);
 int             fileread(struct file*, uint64, int);
 int             filestat(struct file*, uint64 addr);
 int		          filekstat(struct file *f, uint64 addr);

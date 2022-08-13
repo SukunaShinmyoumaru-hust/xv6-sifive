@@ -194,6 +194,18 @@ struct vma *addr_locate_vma(struct vma*head, uint64 addr)
   return NULL;
 }
 
+struct vma *part_locate_vma(struct vma *head, uint64 start, uint64 end)
+{
+  struct vma *a = addr_locate_vma(head, start);
+  struct vma *b = addr_locate_vma(head, end);
+  if(!a || !b || a != b)
+  {
+    __debug_warn("[part_locate_vma] start = %p, end = %p, not found\n", start, end);
+    return NULL;
+  }
+  return a;
+}
+
 struct vma* alloc_mmap_vma(struct proc *p, int flags, uint64 addr, uint64 sz, int perm, int fd ,uint64 f_off)
 {
   struct vma *vma = NULL;

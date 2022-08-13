@@ -333,6 +333,14 @@ sfence_vma()
   asm volatile("sfence.vma");
 }
 
+#include "memlayout.h"
+static inline uint64 readtime()
+{
+	uint64 x;
+	x = *(uint64 *)CLINT_VMTIME;
+	return x;
+}
+
 #define FILENUM(x) 13
 #define FILEFREE(x) 0
 

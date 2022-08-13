@@ -27,3 +27,21 @@ localtime_end:
 
 localtime_size:
     .long localtime_end - localtime
+
+    .global mounts
+    .global mounts_size
+mounts:
+    .incbin "./bin/mounts"
+mounts_end:
+
+mounts_size:
+    .long mounts_end - mounts
+
+    .global meminfo
+    .global meminfo_size
+meminfo:
+    .incbin "./bin/meminfo"
+meminfo_end:
+
+meminfo_size:
+    .long meminfo_end - meminfo

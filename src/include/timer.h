@@ -30,6 +30,16 @@ struct timespec {
     long    tv_nsec;        /* nanoseconds */
 };
 
+struct timeval {
+	uint64 sec;			/* seconds */
+	uint64 usec;		/* microseconds or milliseconds? */
+};
+
+struct itimerval {
+	struct timeval it_interval; /* Interval for periodic timer */
+	struct timeval it_value;    /* Time until next expiration */
+};
+
 struct tms {
 	uint64 utime;		// user time 
 	uint64 stime;		// system time 
@@ -75,11 +85,36 @@ static inline int ktime_before(const ktime_t cmp1, const ktime_t cmp2)
 }
 
 
+/**
+ * 'time' is read from mtime register
+ */
+static inline void convert_to_timespec(uint64 time, struct timespec *ts)
+{
+	ts->tv_sec = time / TICK_FREQ;
+	ts->tv_nsec = (time % TICK_FREQ)
+				* 1000 * 1000 / (TICK_FREQ / 1000);
+}
+
+static inline void convert_to_timeval(uint64 time, struct timeval *tv)
+{
+	tv->sec = time / TICK_FREQ;
+	tv->usec = (time % TICK_FREQ) * 1000 / (TICK_FREQ / 1000);
+}
+
+static inline uint64 convert_from_timespec(const struct timespec *ts)
+{
+	uint64 time = ts->tv_sec * TICK_FREQ
+					+ ts->tv_nsec * (TICK_FREQ / 1000 / 100) / 10 / 1000;
+	return time;
+}
+
+
 uint64 get_time_ms();
 uint64 get_time_us();
 
 void timerinit();
 void set_next_timeout();
 void timer_tick();
+struct timeval get_timeval();
 
 #endif

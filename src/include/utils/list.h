@@ -2,6 +2,7 @@
 #define __LIST_H
 
 #include "include/types.h"
+#include "include/printf.h"
 
 struct list {
 	struct list *prev, *next;
@@ -48,6 +49,9 @@ static inline void list_add_before(struct list *beforeme, struct list *node) {
 }
 
 static inline void list_del(struct list *node) {
+	if(node==NULL){
+	  panic("[list next]list is null");
+	}
 	__list_link(node->prev, node->next);
 }
 

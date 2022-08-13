@@ -6,6 +6,7 @@
 #include"include/pm.h"
 #include"include/uname.h"
 #include"include/copy.h"
+#include"include/rusage.h"
 
 uint64
 sys_execve()
@@ -160,16 +161,6 @@ sys_gettid(void){
 }
 
 uint64
-sys_brk(void)
-{
-  int n;
-  if(argint(0, &n) < 0)
-    return -1;
-  return growproc(n);
-}
-
-
-uint64
 sys_exit()
 {
   int n;
@@ -180,7 +171,51 @@ sys_exit()
   return 0;
 }
 
-uint64 sys_nanosleep(void) {
+uint64
+sys_getrusage(void)
+{
+  int who;
+  struct proc* p = myproc();
+  uint64 rusage;
+  struct rusage rs;
+  if(argint(0,&who)<0){
+    return -1;
+  }
+  if(argaddr(1,&rusage)<0){
+    return -1;
+  }
+  rs = (struct rusage){
+    .ru_utime = get_timeval(),
+    .ru_stime = get_timeval(),
+  };
+  switch(who){
+    case RUSAGE_SELF:
+		case RUSAGE_THREAD:
+			rs.ru_nvcsw = p->vswtch;
+			rs.ru_nivcsw = p->ivswtch;
+      break;
+    default:
+      break;
+  }
+  if(either_copyout(1,rusage,&rs,sizeof(rs))<0){
+    return -1;
+  }
+  //__debug_info("[sys_getrusage] return 0\n");
+  return 0;
+}
+
+uint64
+sys_umask(void)
+{
+  int n;
+  argint(0, &n);
+  n = n & 0777;
+  myproc()->umask = n;
+  return 0;
+}
+
+uint64 
+sys_nanosleep(void) {
 	uint64 addr_sec, addr_usec;
 
 	if (argaddr(0, &addr_sec) < 0) 

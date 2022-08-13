@@ -57,6 +57,13 @@ procinit(){
   queue_init(&readyq,NULL);
   waitq_pool_init();
   firstuserinit = 1;
+  for(struct proc* p = proc;p<proc+NPROC;p++){
+      initlock(&p->lock, "proc");
+      p->state = UNUSED;
+      p->parent = NULL;
+      p->killed = 0;
+      p->filelimit = NOFILE;
+  }
   __debug_info("procinit\n");
 }
 
@@ -172,6 +179,7 @@ freeproc(struct proc *p)
   if(p->trapframe)
     freepage((void*)p->trapframe);
     */
+  //__debug_warn("[freeproc]free pid %d\n",p->pid);
   p->trapframe = 0;
   if(p->mf)
     free_map_fix(p);
@@ -191,7 +199,7 @@ freeproc(struct proc *p)
   p->robust_list = NULL;
   p->sz = 0;
   p->pid = 0;
-  p->parent = 0;
+  list_del(&p->sib_list);
   p->name[0] = 0;
   p->chan = 0;
   p->killed = 0;
@@ -235,7 +243,11 @@ found:
   p->vma = NULL;
   p->uid = 0;
   p->gid = 0;
+  p->vswtch = 0;
+  p->ivswtch = 0;
   p->q = NULL;
+  list_init(&p->c_list);
+  list_init(&p->sib_list);
   // Allocate a trapframe page.
   if((p->trapframe = allocpage()) == NULL){
     release(&p->lock);
@@ -376,7 +388,6 @@ void
 userinit()
 {
   struct proc *p;
-
   p = allocproc(0, 0);
   if(firstuserinit){
     initproc = p;
@@ -390,7 +401,6 @@ userinit()
   //print_vma_info(p);
   copyout(p->pagetable,0,initcode,initcodesize);
   
-
   p->trapframe->epc = 0x0;      // user program counter
   p->trapframe->sp = type_locate_vma(p->vma,STACK)->end;  // user stack pointer
   
@@ -400,7 +410,6 @@ userinit()
   readyq_push(p);//insert to ready queue
   p->tmask = 0;
   p->cwd = ename(NULL,"/",0);
-
   release(&p->lock);
   __debug_info("userinit\n");
 }
@@ -485,7 +494,7 @@ int clone(uint64 flag, uint64 stack, uint64 ptid, uint64 tls, uint64 ctid) {
   
   release(&np->lock);
   //__debug_info("epc:%p\n",p->trapframe->epc);
-  //__debug_info("[clone] successfully clone\n");
+  //__debug_info("[clone] pid %d clone pid %d\n",pid,p->pid);
   return pid;
 }
 
@@ -562,6 +571,7 @@ sleep(void *chan, struct spinlock *lk)
     __debug_error("waitq pool is full\n");
   }
   waitq_push(q,p);
+  p->vswtch += 1;
   p->state = SLEEPING;
   sched();
 
@@ -577,7 +587,7 @@ sleep(void *chan, struct spinlock *lk)
 
 // Wake up all processes sleeping on chan.
 // Must be called without any p->lock.
-void
+int
 wakeup(void *chan)
 {
    queue* q = findwaitq(chan);
@@ -588,6 +598,9 @@ wakeup(void *chan)
        readyq_push(p);
      }
      delwaitq(q);
+     return 1;
+   }else{
+     return 0;
    }
 }
 
@@ -596,6 +609,7 @@ wakeup(void *chan)
 void
 allocparent(struct proc* parent,struct proc* child){
   child->parent = parent;
+  list_add_after(&parent->c_list,&child->sib_list);
 }
 
 
@@ -609,12 +623,17 @@ getparent(struct proc* child){
 //need release return proc lock
 struct proc*
 findchild(struct proc* p,int (*cond)(struct proc*,int),int pid,struct proc** child){
+   struct list* c_head = &p->c_list;
+   struct list* c_it = list_next(c_head);
    *child = NULL;
-   for(struct proc* np = proc; np < &proc[NPROC]; np++){
+   struct proc* np = NULL;
+   while(c_it!=c_head){
+      np = sib_getproc(c_it);
+      //printf("[findchild]pid %d find child pid %d\n",p->pid,np->pid);
       // this code uses np->parent without holding np->lock.
       // acquiring the lock first would cause a deadlock,
       // since np might be an ancestor, and we already hold p->lock.
-      if(np->parent == p&&cond(np,pid)){
+      if(cond(np,pid)){
         // np->parent can't change between the check and the acquire()
         // because only the parent changes it, and we're the parent.
         acquire(&np->lock);
@@ -624,6 +643,7 @@ findchild(struct proc* p,int (*cond)(struct proc*,int),int pid,struct proc** chi
         }
         release(&np->lock);
       }
+      c_it = list_next(c_it);
    }
    return NULL;
 }
@@ -633,14 +653,19 @@ findchild(struct proc* p,int (*cond)(struct proc*,int),int pid,struct proc** chi
 void
 reparent(struct proc *p)
 {
-  struct proc *pp;
-
-  for(pp = proc; pp < &proc[NPROC]; pp++){
+  //__debug_warn("pid %d reparent\n",p->pid);
+  struct list *c_head = &p->c_list;
+  if(list_empty(c_head))return;
+  struct list *c_next = list_next(c_head);
+  struct list *c_prev = list_prev(c_head);
+  struct list *c_it = c_next;
+  struct proc *pp = NULL;
+  while(c_it!=c_head){
+    pp = sib_getproc(c_it);
     // this code uses pp->parent without holding pp->lock.
     // acquiring the lock first could cause a deadlock
     // if pp or a child of pp were also in exit()
     // and about to try to lock p.
-    if(pp->parent == p){
       // pp->parent can't change between the check and the acquire()
       // because only the parent changes it, and we're the parent.
       acquire(&pp->lock);
@@ -650,8 +675,12 @@ reparent(struct proc *p)
       // the lock on one of init's children (pp). this is why
       // exit() always wakes init (before acquiring any locks).
       release(&pp->lock);
-    }
-  }
+      c_it = list_next(c_it);
+  };
+  struct list* init_head = &initproc->c_list;
+  struct list* init_next = list_next(init_head);
+  __list_link(init_head,c_next);
+  __list_link(c_prev,init_next);
 }
 
 void

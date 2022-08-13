@@ -166,10 +166,10 @@ start_handle:
 			return;
 	}
 
-	// frame = kmalloc(sizeof(struct sig_frame));
-        frame = allocpage();
-	// tf = kmalloc(sizeof(struct trapframe));
-        tf = allocpage();
+	frame = kmalloc(sizeof(struct sig_frame));
+        // frame = allocpage();
+	tf = kmalloc(sizeof(struct trapframe));
+        //tf = allocpage();
 	// copy mask 
 	// for (int i = 0; i < SIGSET_LEN; i ++) {
 	// 	frame->mask.__val[i] = p->sig_set.__val[i];
@@ -188,7 +188,9 @@ start_handle:
 	tf->a0 = signum;
 	if (NULL != sigact && sigact->sigact.__sigaction_handler.sa_handler) {
 		//temp way
-		tf->a1 = (uint64)(SIG_TRAMPOLINE + ((uint64)default_sigaction - (uint64)sig_trampoline));
+		//tf->a1 = (uint64)(SIG_TRAMPOLINE + ((uint64)default_sigaction - (uint64)sig_trampoline));
+		__debug_info("do signal_handler\n");
+		tf->a1 = (uint64)(sigact->sigact.__sigaction_handler.sa_handler);
 	}
 	else {
 		// use the default handler 

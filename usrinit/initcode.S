@@ -23,7 +23,7 @@ start:
 	
 	la a0, init
 	la a1, argv
-	la a2, 0
+	la a2, env
 	li a7, SYS_execve
 	ecall
 
@@ -34,7 +34,9 @@ end:
 	ecall
 	jal end
 init:
-	.string "/mytest.sh\0"
+	.string "./mytest.sh\0"
+path:
+	.string "PATH=/"
 console:
 	.string "/dev/console\0"
 testread:
@@ -44,4 +46,6 @@ testread:
 argv:
 	.dword init
 	.dword 0
+env:
+	.dword path
 	

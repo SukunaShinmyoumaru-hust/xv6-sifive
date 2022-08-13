@@ -13,6 +13,7 @@
 #include "include/string.h"
 #include "include/vm.h"
 #include "include/uname.h"
+#include "include/copy.h"
 
 uint64
 sys_exit_group(void){
@@ -36,7 +37,7 @@ uint64 sys_rt_sigprocmask(void){
 	argaddr(1, &uptr_set);
 	argaddr(2, &uptr_oldset);
 
-	if (uptr_set && copyin2((char*)&set, uptr_set, SIGSET_LEN * 8) < 0) {
+	if (uptr_set && either_copyin(1, (char*)&set, uptr_set, SIGSET_LEN * 8) < 0) {
 		return -1;
 	}
 
@@ -44,7 +45,7 @@ uint64 sys_rt_sigprocmask(void){
 		return -1;
 	}
 
-	if (uptr_oldset && copyout2(uptr_oldset, (char*)&oldset, SIGSET_LEN * 8) < 0) {
+	if (uptr_oldset && either_copyout(1, uptr_oldset, (char*)&oldset, SIGSET_LEN * 8) < 0) {
 		return -1;
 	}
 
@@ -64,10 +65,12 @@ uint64 sys_rt_sigaction(void) {
 	struct sigaction act;
 	struct sigaction oldact;
 
+	//__debug_info("[sigaction]  uptr_act : %p,uptr_oldact : %p\n",uptr_act,uptr_oldact);
 	if (uptr_act) {
 		if (
-			copyin2((char*)&(act.__sigaction_handler), uptr_act, sizeof(__sighandler_t)) < 0 
+			either_copyin(1, (char*)&(act.__sigaction_handler), uptr_act, sizeof(__sighandler_t)) < 0 
 		) {
+			__debug_info("[sigaction] return -1\n");
 			return -1;
 		}
 	}
@@ -77,17 +80,19 @@ uint64 sys_rt_sigaction(void) {
 		uptr_act ? &act : NULL, 
 		uptr_oldact ? &oldact : NULL
 	) < 0) {
+		//__debug_info("[sigaction] return -1\n");
 		return -1;
 	}
 
 	if (uptr_oldact) {
 		if (
-			copyout2(uptr_oldact, (char*)&(act.__sigaction_handler), sizeof(__sighandler_t)) < 0 
+			either_copyout(1,uptr_oldact, (char*)&(act.__sigaction_handler), sizeof(__sighandler_t)) < 0 
 		) {
+			//__debug_info("[sigaction] return -1\n");
 			return -1;
 		}
 	}
-
+	//__debug_info("[sigaction] return 0\n");
 	return 0;
 }
 

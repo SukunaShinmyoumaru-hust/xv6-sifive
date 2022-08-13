@@ -152,6 +152,19 @@ success:
     return i;
 }
 
+map_fix * find_map_fix(struct proc *p, uint64 start, uint64 len)
+{
+  map_fix *i = p->mf;
+  while(i)
+  {
+    if(i->addr == start && len <= i->sz)
+    {
+      return i;
+    }
+    i = i->next;
+  }
+  return NULL;
+}
 
 uint64 do_munmap(struct proc* np,uint64 start, uint64 len)
 {

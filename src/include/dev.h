@@ -26,6 +26,8 @@ int devinit();
 int devlookup(char* name);
 int getdevnum();
 int allocdev(char* name,int (*devread)(int, uint64, int),int (*devwrite)(int, uint64, int));
+int rtcread(int user_dst, uint64 addr, int n);
+int rtcwrite(int user_dst, uint64 addr, int n);
 int nullread(int user_dst,uint64 addr,int n);
 int nullwrite(int user_dst,uint64 addr,int n);
 int zeroread(int user_dst,uint64 addr,int n);

@@ -1,0 +1,1 @@
+make OS=XXX CC="riscv64-linux-gnu-gcc -static -ggdb -D_DEBUG"

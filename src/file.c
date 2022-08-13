@@ -88,7 +88,7 @@ fileclose(struct file *f)
   release(&ftable.lock);
 
   if(ff.type == FD_PIPE){
-    //pipeclose(ff.pipe, ff.writable);
+    pipeclose(ff.pipe, ff.writable);
   } else if(ff.type == FD_ENTRY){
     eput(ff.ep);
   } else if (ff.type == FD_DEVICE) {
@@ -117,7 +117,7 @@ void print_f_info(struct file* f){
         printf("[file]PIPE\n");
         break;
     case FD_DEVICE:
-        printf("[file]DEVICE name:%d\n",devsw[f->major].name);
+        printf("[file]DEVICE name:%s\n",devsw[f->major].name);
         break;
     case FD_ENTRY:
         printf("[file]ENTRY name:%s\n",f->ep->filename);
@@ -132,7 +132,6 @@ void print_f_info(struct file* f){
 void fileiolock(struct file* f){
   switch (f->type) {
     case FD_PIPE:
-        acquire(&f->pipe->lock);
         break;
     case FD_DEVICE:
         acquire(&(devsw + f->major)->lk);
@@ -148,7 +147,6 @@ void fileiolock(struct file* f){
 void fileiounlock(struct file* f){
   switch (f->type) {
     case FD_PIPE:
-        release(&f->pipe->lock);
         break;
     case FD_DEVICE:
         release(&(devsw + f->major)->lk);
@@ -166,7 +164,7 @@ fileinput(struct file* f, int user, uint64 addr, int n, uint64 off){
   uint64 r = 0;
   switch (f->type) {
     case FD_PIPE:
-        r = piperead(f->pipe, user, addr, n);
+        r = piperead(f->pipe, addr, n);
         break;
     case FD_DEVICE:
         r = (devsw + f->major)->read(user, addr, n);
@@ -185,7 +183,7 @@ fileoutput(struct file* f, int user, uint64 addr, int n, uint64 off){
   uint64 r = 0;
   switch (f->type) {
     case FD_PIPE:
-        r = pipewrite(f->pipe, user, addr, n);
+        r = pipewrite(f->pipe, addr, n);
         break;
     case FD_DEVICE:
         r = (devsw + f->major)->write(user, addr, n);
@@ -214,7 +212,7 @@ filestat(struct file *f, uint64 addr)
     estat(f->ep, &st);
     eunlock(f->ep);
     // if(copyout(p->pagetable, addr, (char *)&st, sizeof(st)) < 0)
-    if(copyout2(addr, (char *)&st, sizeof(st)) < 0)
+    if(either_copyout(1, addr, (char *)&st, sizeof(st)) < 0)
       return -1;
     return 0;
   }
@@ -226,7 +224,7 @@ filestat(struct file *f, uint64 addr)
 int
 filekstat(struct file *f, uint64 addr)
 {
-  struct proc *p = myproc();
+  //struct proc *p = myproc();
   struct kstat kst;
   
   if(f->type == FD_ENTRY){
@@ -251,7 +249,7 @@ filekstat(struct file *f, uint64 addr)
   }else {
     return -1;
   }    
-  if(copyout(p->pagetable, addr, (char *)&kst, sizeof(kst)) < 0)
+  if(either_copyout(1, addr, (char *)&kst, sizeof(kst)) < 0)
     // if(copyout2(addr, (char *)&kst, sizeof(kst)) < 0)
       return -1;
   return 0;
@@ -269,9 +267,7 @@ fileread(struct file *f, uint64 addr, int n)
 
   switch (f->type) {
     case FD_PIPE:
-        acquire(&f->pipe->lock);
-        r = piperead(f->pipe, 1, addr, n);
-        release(&f->pipe->lock);
+        r = piperead(f->pipe, addr, n);
         break;
     case FD_DEVICE:
         if(f->major < 0 || f->major >= getdevnum() || !devsw[f->major].read)
@@ -303,9 +299,7 @@ filewrite(struct file *f, uint64 addr, int n)
   if(f->writable == 0)
     return -1;
   if(f->type == FD_PIPE){
-    acquire(&f->pipe->lock);
-    ret = pipewrite(f->pipe, 1, addr, n);
-    release(&f->pipe->lock);
+    ret = pipewrite(f->pipe, addr, n);
   } else if(f->type == FD_DEVICE){
     if(f->major < 0 || f->major >= getdevnum() || !devsw[f->major].write)
       return -1;
@@ -350,24 +344,27 @@ filesend(struct file* fin,struct file* fout,uint64 addr,uint64 n){
   }
   //printf("[filesend]want send n:%p\n",n);
   //printf("[filesend]before send fout off:%p\n",fout->off);
-  print_f_info(fin);
-  print_f_info(fout);
+  //print_f_info(fin);
+  //print_f_info(fout);
   fileiolock(fin);
   fileiolock(fout);
   while(n){
-    char buf[512];
-    rlen = MIN(n,512);
+    char buf[1024];
+    rlen = MIN(n,sizeof(buf));
     rlen = fileinput(fin,0,(uint64)&buf,rlen,off);
-    printf("[filesend] send rlen %p\n",rlen);
+    //printf("[filesend] send rlen %p\n",rlen);
     off += rlen;
     n -= rlen;
     if(!rlen){
       break;
     }
     wlen = fileoutput(fout,0,(uint64)&buf,rlen,fout->off);
-    printf("[filesend] send wlen:%p\n",rlen,wlen);
+    //printf("[filesend] send wlen:%p\n",rlen,wlen);
     fout->off += wlen;
     ret += wlen;
+    //printf("[filesend]-----start-----\n");
+    //printf("[filesend]%s\n",buf);
+    //printf("[filesend]-----end-----\n");
   }
   fileiounlock(fout);
   fileiounlock(fin);
@@ -408,7 +405,7 @@ dirnext(struct file *f, uint64 addr)
   f->off += count * 32;
   estat(&de, &st);
   // if(copyout(p->pagetable, addr, (char *)&st, sizeof(st)) < 0)
-  if(copyout2(addr, (char *)&st, sizeof(st)) < 0)
+  if(either_copyout(1, addr, (char *)&st, sizeof(st)) < 0)
     return -1;
 
   return 1;

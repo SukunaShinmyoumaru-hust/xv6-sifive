@@ -46,6 +46,8 @@ sys_openat()
   struct dirent *dp = NULL;
   struct dirent *ep;
   struct proc* p = myproc();
+  int err = 0;
+  
   argfd(0,&dirfd,&dirf);
   if(argstr(1, path, FAT32_MAX_PATH) < 0){
     __debug_warn("[sys openat] open not valid path\n");
@@ -54,8 +56,16 @@ sys_openat()
   if(argint(2, &flags) < 0
    ||argint(3, &mode) <0 )
     return -1;
-
-  //__debug_warn("[sys openat]flags:%p mode:%p\n",flags,mode);
+  if(myproc()->umask == 0){
+    
+  }
+  else if(((mode >> 6) - (myproc()->umask >> 6) > 0) && (mode >> 3) - (myproc()->umask >> 3) > 0 && (mode >> 0) - (myproc()->umask >> 0) > 0){
+    mode = (((mode >> 6) - (myproc()->umask >> 6)) << 6) | (((mode >> 3) - (myproc()->umask >> 3)) << 3) | (((mode >> 0) - (myproc()->umask >> 0)) << 0);
+  }
+  else{
+    return -1;
+  }
+  // __debug_warn("[sys openat]flags:%p mode:%p\n",flags,mode);
   if(mode | O_RDWR){
   	flags |= O_RDWR;
   }else if(mode == 0600){
@@ -78,7 +88,7 @@ sys_openat()
   }    
   if((ep = ename(dp,path,&devno)) == NULL){  
     if(flags & O_CREATE){
-      ep = create(dp,path, T_FILE, flags);
+      ep = create(dp,path, T_FILE, flags, &err);
       if(ep == NULL){
         __debug_warn("[sys openat] create file %s failed\n",path);
         return -1;
@@ -137,7 +147,7 @@ sys_openat()
     elock(dp);  
   }
   p->exec_close[fd] = 0;
- // __debug_warn("[sys openat] fd:%d openat:%s\n",fd,path);
+//  __debug_warn("[sys openat] fd:%d openat:%s\n",fd,path);
   return fd;
 }
 
@@ -148,30 +158,52 @@ sys_mkdirat(void)
   struct dirent *ep, *dp = NULL;
   struct file *fp;
   int dirfd;
-  int mode, omode = 0;
+  int mode;
+  int err = 0;
 
-  if((argfd(0, &dirfd, &fp) < 0 && dirfd != AT_FDCWD)|| argstr(1, path, FAT32_MAX_PATH) < 0 || argint(2, &mode) < 0){
-    return -1;
-  }
-  if(mode == 0666){
-      omode = omode;
-      // mode 
-    }
-
-  if(path[0] == '/' || dirfd == AT_FDCWD) {
-    dp = NULL;
-  }else {
-    if(!fp)
+  if((argfd(0, &dirfd, &fp) < 0)){
+    if(path[0] != '/' && dirfd != AT_FDCWD)
     {
-      __debug_warn("[sys_mkdirat] dir file not exists\n");
-      return -1;
+      __debug_warn("[sys_mkdirat] wrong dirfd\n");
+      return -EBADF;
     }
+    dp = myproc()->cwd;
+  }
+  else
+  {
     dp = fp->ep;
   }
-  ep = create(dp, path, T_DIR, omode);
+  
+  if(argstr(1, path, FAT32_MAX_PATH) < 0)
+  {
+    return -ENAMETOOLONG;
+  }
+  
+  if(argint(2, &mode) < 0)
+  {
+    return -ENAMETOOLONG;
+  }
+  if(myproc()->umask == 0){
+
+  }
+  else if(((mode >> 6) - (myproc()->umask >> 6) > 0) && (mode >> 3) - (myproc()->umask >> 3) > 0 && (mode >> 0) - (myproc()->umask >> 0) > 0){
+    mode = (((mode >> 6) - (myproc()->umask >> 6)) << 6) | (((mode >> 3) - (myproc()->umask >> 3)) << 3) | (((mode >> 0) - (myproc()->umask >> 0)) << 0);
+  }
+  else{
+    return -1;
+  }
+  //__debug_info("[sys_mkdirat] create %s, dirfd = %d, mode = %p\n", path, dirfd, mode);
+  
+  if((ep = create(dp, path, T_DIR, (mode & ~S_IFMT) | S_IFDIR, &err)) == NULL)
+  {
+    __debug_warn("[sys_mkdirat] create %s failed\n", path);
+    return -EINVAL;
+  }
+  
+  //__debug_info("[sys_mkdirat] create %s ing......\n", path);
   eunlock(ep);
   eput(ep);
-  return 0;
+  return err;
 }
 
 
@@ -265,7 +297,7 @@ sys_readv(void){
   }
   struct proc* p = myproc();
   struct iovec v;
-  //printf("[writev]fd:%d iov:%p iovcnt:%d\n",fd,iov,iovcnt);
+  //printf("[readv]fd:%d iov:%p iovcnt:%d\n",fd,iov,iovcnt);
   for(int i = 0;i<iovcnt;i++){
     uint64 vec = iov+i*sizeof(v);
     copyin(p->pagetable,(char*)&v,vec,sizeof(v));
@@ -416,6 +448,7 @@ sys_fstat(void)
   if(argfd(0, &fd, &f) < 0 || argaddr(1, &st) < 0)
     return -1;
   //return filestat(f, st);
+  //print_f_info(f);
   return filekstat(f, st);
 }
 
@@ -736,19 +769,24 @@ sys_ioctl(void)
 	uint64 argp;
 
 	if (argfd(0, &fd, &f) < 0 || argaddr(1, &request) < 0 || argaddr(2, &argp) < 0)
-		return -1;
-	
-	if (f->type != FD_DEVICE)
-		return -1;
+		return -EBADF;
 
+	if (f->type != FD_DEVICE&&f->type != FD_PIPE){
+               //__debug_info("[sys_ioctl] fd:%d f->type not device or pipe\n",fd);
+		return -EPERM;
+        }
+
+  // __debug_info("[sys_ioctl] request = %p\n", request);
 	switch (request) {
 	case TIOCGWINSZ: {
 		struct winsize win = {
 			.ws_row = 24,
 			.ws_col = 80,
 		};
-		if (copyout2(argp, (char*)&win, sizeof(win)) < 0)
-			return -1;
+		if (either_copyout(1, argp, (char*)&win, sizeof(win)) < 0){
+      __debug_info("[sys_ioctl] copyout1\n");
+			return -EFAULT;
+    }
 		break;
 	}
 	case TCGETS: {
@@ -760,12 +798,14 @@ sys_ioctl(void)
 			.c_line = 0,
 			.c_cc = {0},
 		};
-		if (copyout2(argp, (char*)&terminfo, sizeof(terminfo)) < 0)
-			return -1;
+		if (either_copyout(1, argp, (char*)&terminfo, sizeof(terminfo)) < 0){
+      __debug_info("[sys_ioctl] copyout2\n");
+			return -EFAULT;
+    }
 		break;
 	}
 	default:
-		return -1;
+		return 0;
 	}
 
 	return 0;
@@ -856,8 +896,40 @@ sys_pipe2(void)
     fileclose(wf);
     return -1;
   }
-  printf("[pipe] fd0:%d fd1:%d\n",fd0,fd1);
+  //printf("[pipe] fd0:%d fd1:%d\n",fd0,fd1);
   return 0;
+}
+
+uint64
+sys_readlinkat(void)
+{
+  int dirfd;
+  struct file* df;
+  char pathname[FAT32_MAX_PATH+1];
+  uint64 buf;
+  int bufsz;
+  if(argint(3,&bufsz)<0){
+    return -1;
+  }
+  if(argaddr(2,&buf)<0){
+    return -1;
+  }
+  if(argstr(1,pathname,FAT32_MAX_PATH+1)<0){
+    return -1;
+  }
+  if(argfd(0,&dirfd,&df)&&dirfd!=AT_FDCWD&&pathname[0]!='/'){
+    return -1;
+  }
+  //if(dirfd>=0)print_f_info(df);
+  //printf("[readlinkat] pathname:%s\n",pathname);
+  //printf("[readlinkat] buf:%p bufsz:%p\n",buf,bufsz);
+  if(strncmp(pathname,"proc/self/exe",FAT32_MAX_PATH)==0){
+    if(either_copyout(1,buf,myproc()->name,bufsz)<0){
+      return -1;
+    }
+    return 0;
+  }
+  return -1;
 }
 
 
@@ -886,47 +958,8 @@ sys_sendfile(void)
   {
     return -1;
   }
-  __debug_info("out_fd: %d, in_fd: %d, offset: %p, count: %p\n", out_fd, in_fd, offset, count);
+  //__debug_info("out_fd: %d, in_fd: %d, offset: %p, count: %p\n", out_fd, in_fd, offset, count);
   
   return filesend(fin,fout,offset,count);
 }
 
-uint64
-sys_mmap(void)
-{
-  uint64 start;
-  uint64 len;
-  int prot;
-  int flags;
-  int fd;
-  int off;
-  if(argaddr(0, &start) < 0)
-    return -1;
-  if(argaddr(1, &len) < 0)
-    return -1;
-  if(argint(2, &prot) < 0)
-    return -1;
-  if(argint(3, &flags) < 0)
-    return -1;
-  if(argfd(4, &fd, NULL) < 0 && fd!=-1){
-    //printf("fd:%d\n",fd);
-    return -1;
-  }
-  if(argint(5, &off) < 0)
-    return -1;
-
-  uint64 ret = do_mmap(start, len, prot, flags, fd, off);
-  // printf("[sys_map] ret(start) = %p\n",ret);
-  return ret;
-}
-
-uint64
-sys_munmap(void)
-{
-  uint64 start;
-  uint64 len;
-  if(argaddr(0, &start) < 0 || argaddr(1, &len) < 0){
-    return -1;
-  }
-  return do_munmap(NULL, start, len);
-}

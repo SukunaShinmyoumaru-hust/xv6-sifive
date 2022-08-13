@@ -34,13 +34,11 @@ void            kvmfree(pagetable_t kpagetable, int stack_free);
 uint64          kwalkaddr(pagetable_t pagetable, uint64 va);
 uint64          kwalkaddr1(pagetable_t pagetable, uint64 va);
 void		 checkkpt(int num);
-int             copyout2(uint64 dstva, char *src, uint64 len);
-int             copyin2(char *dst, uint64 srcva, uint64 len);
-int             copyinstr2(char *dst, uint64 srcva, uint64 max);
 void            vmprint(pagetable_t pagetable);
 pte_t *         walk(pagetable_t pagetable, uint64 va, int alloc);
 int             handle_page_fault(int kind, uint stval);
 int             kernel_handle_page_fault(int kind, uint stval);
 int 		uvmcopy2(pagetable_t old, pagetable_t new, pagetable_t knew, uint sz);
-void        freewalk(pagetable_t pagetable);
+void        	freewalk(pagetable_t pagetable);
+int		uvmprotect(uint64 va, uint64 len, int perm);
 #endif 

@@ -1,4 +1,6 @@
 #!/bin/bash
 
-./lmbench_all lat_syscall -P 1 null
-
+./lua_testcode.sh
+./busybox_testcode.sh
+#./lmbench_testcode.sh
+#lmbench_all lat_syscall -P 1 null

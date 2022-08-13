@@ -3,7 +3,7 @@ U=usrinit
 SBI=sbi/fw_jump.elf
 LINKER=linker/kernel.ld
 
-FS?=FAT
+FS?=RAM
 MAC?=SIFIVE_U
 
 ifeq ($(MAC),SIFIVE_U)
@@ -42,6 +42,7 @@ OBJS += \
 	$K/pm.o \
 	$K/kmalloc.o \
 	$K/vm.o \
+	$K/plic.o \
 	$K/timer.o \
 	$K/main.o \
 	$K/kernelvec.o \
@@ -60,9 +61,23 @@ OBJS += \
 	$K/syslog.o \
 	$K/syspoll.o \
 	$K/syssig.o \
+	$K/sysmem.o \
 	$K/syscall.o
 
-TOOLPREFIX=riscv64-linux-gnu-
+# Try to infer the correct TOOLPREFIX if not set
+ifndef TOOLPREFIX
+TOOLPREFIX := $(shell if riscv64-unknown-elf-objdump -i 2>&1 | grep 'elf64-big' >/dev/null 2>&1; \
+	then echo 'riscv64-unknown-elf-'; \
+	elif riscv64-linux-gnu-objdump -i 2>&1 | grep 'elf64-big' >/dev/null 2>&1; \
+	then echo 'riscv64-linux-gnu-'; \
+	elif riscv64-unknown-linux-gnu-objdump -i 2>&1 | grep 'elf64-big' >/dev/null 2>&1; \
+	then echo 'riscv64-unknown-linux-gnu-'; \
+	else echo "***" 1>&2; \
+	echo "*** Error: Couldn't find a riscv64 version of GCC/binutils." 1>&2; \
+	echo "*** To turn off this error, run 'gmake TOOLPREFIX= ...'." 1>&2; \
+	echo "***" 1>&2; exit 1; fi)
+endif
+
 
 QEMU = qemu-system-riscv64
 
@@ -108,6 +123,18 @@ $U/initcode:$U/initcode.S
 	$(OBJCOPY) -S -O binary $U/initcode.out $U/initcode
 	rm -f $U/initcode.o $U/initcode.out $U/initcode.d
 
+dump%:
+	@$(OBJDUMP) -S sd/$* > dump/$*.s
+	@readelf -a sd/$* > dump/$*.txt
+
+rebench:
+	rm -f sd/lmbench_all sd/lmbench_all.txt  sd/lmbench_all.asm
+	make -C lmbench clean
+	make -C lmbench all
+	cp ./lmbench/bin/XXX/lmbench_all ./sd/lmbench_all
+	make dumplmbench_all
+	make disk.img
+
 clean:
 	rm -f *.tex *.dvi *.idx *.aux *.log *.ind *.ilg \
 	*/*.o */*.d */*.asm */*.sym src/include/sysnum.h src/syscall.c \
@@ -125,6 +152,9 @@ $U/usys.S : $K/syscall.c
 $U/usys.o : $U/usys.S
 	$(CC) $(CFLAGS) -c -o $U/usys.o $U/usys.S
 
+all:$K/kernel
+	riscv64-unknown-elf-objcopy -O binary -S $K/kernel os.bin
+
 disk:
 	@rm -f *.sb
 
@@ -134,7 +164,7 @@ disk.img:disk
 	@rm -f disk.img
 	@if [ ! -f "disk.img" ]; then \
 		echo "making disk image..."; \
-		dd if=/dev/zero of=disk.img bs=512k count=8; \
+		dd if=/dev/zero of=disk.img bs=512k count=10; \
 		mkfs.vfat -F 32 disk.img; fi
 	@sudo mount disk.img $(dst)
 	@sudo cp -r sd/* $(dst)
@@ -169,7 +199,7 @@ qemu-gdb: $K/kernel .gdbinit
 	@echo "*** Now run 'gdb' in another window." 1>&2
 	$(QEMU) $(QEMUOPTS) -S $(QEMUGDB)
 
-commit?=lmbench_start
+commit?=gpipeh
 
 add:
 	git remote add origin https://gitlab.eduxiji.net/Cty/oskernrl2022-rv6.git

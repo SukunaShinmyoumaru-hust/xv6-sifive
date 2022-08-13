@@ -10,6 +10,8 @@
 #include "include/printf.h"
 #include "include/string.h"
 #include "sifive/platform.h"
+#include "include/errno.h"
+#include "include/mmap.h"
 
 /*
  * the kernel's page table.
@@ -26,6 +28,12 @@ kvminit()
   // printf("kernel_pagetable: %p\n", kernel_pagetable);
 
   memset(kernel_pagetable, 0, PGSIZE);
+
+  // CLINT
+  kvmmap(CLINT_V, CLINT, 0x10000, PTE_R | PTE_W);
+
+  // PLIC
+  kvmmap(PLIC_V, PLIC, 0x400000, PTE_R | PTE_W);
   #ifdef RAM
   kvmmap(RAMDISK, RAMDISK, 0x5000000, PTE_R | PTE_W);
   #endif
@@ -333,4 +341,69 @@ uvmfree(struct proc *p)
 }
 
 
+int 
+uvmprotect(uint64 va, uint64 len, int perm)
+{
+  int fence = 0;
+  uint64 i;
+  pte_t *pte = NULL;
+  struct proc *p = myproc();
+  if(va % PGSIZE != 0)
+  {
+    __debug_warn("[uvmprotect] va is illegal\n");
+    return -EINVAL;
+  }
+
+  if(len % PGSIZE)
+  {
+    __debug_warn("[uvmprotect] len is illegal\n");
+    return -EINVAL;
+  }
+  
+  struct vma *vma = (struct vma*)find_map_fix(p, va, len);
+  if(!vma) vma = part_locate_vma(p->vma, va, va + len);
+  if(vma == NULL)
+  {
+    __debug_warn("[uvmprotect] memory illegal\n");
+    return -EINVAL;
+  }
+  
+  if(vma->type == MMAP && vma->fd != -1)
+  {
+    struct file *f = p->ofile[vma->fd];
+    if(f == NULL)
+    {
+      __debug_warn("[uvmprotect] something wrong in MMAP memoryn\n");
+      return -EINVAL;
+    }
+    if(!(f->writable) && (perm & PTE_W))
+    {
+      return -EINVAL;
+    }
+  }
+  
+  for(i = 0; i < len; i += PGSIZE)
+  {
+    pte = walk(p->pagetable, va + i, 0);
+    if(pte == NULL)
+    {
+      __debug_warn("[uvmprotect] page not mapped\n");
+      return -ENOMEM;
+    }
+    if(*pte & PTE_V)
+    {
+      fence = 1;
+      *pte = (*pte & ~(PTE_W | PTE_R | PTE_X)) | perm;
+      // *pte |= perm;
+    }
+    else
+    {
+      __debug_warn("[uvmprotect] page is invalid\n");
+      return -ENOMEM;
+    }
+  }
+  if(fence)
+    sfence_vma();
+  return 0;
+}
 

@@ -1,9 +1,10 @@
-#ifndef __COPY_H
-#define __COPY_H
+#ifndef __QUEUE_H
+#define __QUEUE_H
 
 #include "types.h"
 #include "riscv.h"
 #include "proc.h"
+#include "printf.h"
 struct proc;
 
 typedef struct{
@@ -27,10 +28,7 @@ static inline void qunlock(queue *q){
 }
 
 static inline int queue_empty(queue *q) {
-	qlock(q);
-	int ret = list_empty(&q->head);
-	qunlock(q);
-	return ret;
+	return list_empty(&q->head);
 }
 
 static inline void queue_push(queue* q,struct proc* p){
@@ -42,27 +40,32 @@ static inline void queue_push(queue* q,struct proc* p){
 
 static inline struct proc* queue_pop(queue* q){
 	struct proc* p = NULL;
+	qlock(q);
 	if(!queue_empty(q)){
-		qlock(q);
 		struct list* l = list_next(&q->head);
 		list_del(l);
 		p = dlist_entry(l, struct proc, dlist);
 		p->q = 0;
-		qunlock(q);
+		p->dlist.prev = NULL;
+		p->dlist.next = NULL;
 	}
+	qunlock(q);
 	return p;
 }
 
 static inline int queue_del(struct proc* p){
 	queue* q = (queue*)p->q;
 	struct list* l = &p->dlist;
+	qlock(q);
 	if(q){
-		qlock(q);
 		list_del(l);
 		p->q = 0;
+		p->dlist.prev = NULL;
+		p->dlist.next = NULL;
 		qunlock(q);	
 		return 1;	
 	}
+	qunlock(q);
 	return 0;
 }
 

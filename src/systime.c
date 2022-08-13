@@ -1,4 +1,3 @@
-#include "include/timer.h"
 #include "include/types.h"
 #include "include/param.h"
 #include "include/riscv.h"
@@ -6,6 +5,7 @@
 #include "include/copy.h"
 #include "include/file.h"
 #include "include/errno.h"
+#include "include/timer.h"
 
 uint64
 sys_clock_gettime(void){
@@ -24,17 +24,17 @@ sys_clock_gettime(void){
 	switch (tid)
 	{
 	case CLOCK_REALTIME:
-		tsp.tv_sec = tmp_ticks / CLK_FREQ;
-		tsp.tv_nsec = tmp_ticks / CLK_FREQ / 1000000000;
+		convert_to_timespec(tmp_ticks,&tsp);
 		break;
 	
 	default:
 		break;
 	}
+	//printf("[clock gettime] tsp sec:%p nsec:%p\n",tsp.tv_sec,tsp.tv_sec);
 	if(either_copyout(1,addr,(char*)&tsp,sizeof(struct timespec))<0){
 	  return -1;
 	}
-
+	//__debug_info("[sys_clock_gettime] return 0\n");
 	return 0;
 
 }
@@ -130,3 +130,27 @@ uint64 sys_utimensat(void){
 	// printf("[sys utimesat]flags:%p\n",flags);
 	return 0;
 }
+
+uint64 sys_setitimer(void)
+{
+	int which;
+	uint64 newptr;
+	uint64 oldptr;
+	struct itimerval newval;
+
+	argint(0, &which);
+	argaddr(1, &newptr);
+	argaddr(2, &oldptr);
+
+	if (which != CLOCK_REALTIME)
+		return -EINVAL;
+
+	if (either_copyin(1, (char*)&newval, newptr, sizeof(struct itimerval)) < 0)
+		return -EFAULT;	
+
+	__debug_info("sys_setitimer", "new={%ds|%dus, %ds|%dus}\n",
+				newval.it_interval.sec, newval.it_interval.usec, newval.it_value.sec, newval.it_value.usec);
+	__debug_info("[sys_setitimer] return 0\n");
+	return 0;
+}
+

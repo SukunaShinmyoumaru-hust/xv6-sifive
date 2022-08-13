@@ -151,7 +151,7 @@ static struct kmem_allocator *get_allocator(uint64 raw_size) {
 void *kmalloc(uint size) {
 	// border check for `size`
 	if (KMEM_OBJ_MIN_SIZE > size) {
-		__debug_warn("kmalloc size %d too small, reset to %d\n", size, KMEM_OBJ_MIN_SIZE);
+		//__debug_warn("kmalloc size %d too small, reset to %d\n", size, KMEM_OBJ_MIN_SIZE);
 		size = KMEM_OBJ_MIN_SIZE;
 	}
 	else if (KMEM_OBJ_MAX_SIZE < size) {

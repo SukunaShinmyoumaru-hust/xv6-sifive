@@ -8,17 +8,33 @@
 #include "types.h"
 
 /* init the allocator */
-void            kpminit(void);
+void kpminit(void);
 
-/* allocate a physical page */
-void*           allocpage(void);
+/* allocate n physical page(s) */
+void *allocpage_n(uint64 n);
 
-/* free an allocated phyiscal page */
-void            freepage(void *);
+/* free n allocated physical page(s) */
+void freepage_n(uint64 start, uint64 n);
 
-uint64          idlepages(void);
+/* allocate 1 physicl page */
+uint64 _allocpage(void);
 
-void		checkmemlist(void* pa);
+/* free 1 allocated physical page */
+void _freepage(uint64 start);
+
+// static inline void *allocpage(void) {
+// 	return (void*)_allocpage();
+// }
+#define allocpage() ((void*)_allocpage())
+// static inline void freepage(void *start) {
+// 	_freepage((uint64)start);
+// }
+#define freepage(start) 	_freepage((uint64)(start))
+
+uint64 idlepages(void);
+
+void pm_dump(void);
+
 
 #endif
 

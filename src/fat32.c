@@ -15,6 +15,7 @@
 #include "include/fcntl.h"
 #include "include/vm.h"
 #include "include/image.h"
+#include "include/errno.h"
 
 /* fields that start with "_" are something we don't use */
 
@@ -1021,7 +1022,7 @@ isdirempty(struct dirent *dp)
   return ret == -1;
 }
 
-static int hashpath(char* name){
+int hashpath(char* name){
   int hashvalue = 0;
   for(int i = 0;name[i];i++){
     hashvalue = hashvalue*128;
@@ -1108,7 +1109,13 @@ get_parent_name(char *path, char *pname, char *name)
   int len = strlen(path);
   strncpy(pname, path, len + 1);
   int i = len - 1;
-
+	
+  if(pname[i] == '/' && i == 0)		// root dir
+  {
+    pname[0] = 0;
+    return;
+  }
+  
   if(pname[i] == '/')
   {
     i--;
@@ -1128,7 +1135,7 @@ get_parent_name(char *path, char *pname, char *name)
 
 
 struct dirent*
-create(struct dirent* env, char *path, short type, int mode)
+create(struct dirent* env, char *path, short type, int mode, int *err)
 {
   struct dirent *ep, *dp;
   char name[FAT32_MAX_FILENAME + 1];
@@ -1141,10 +1148,16 @@ create(struct dirent* env, char *path, short type, int mode)
     mode = 0;  
   }
 
-  if((dp = enameparent(env, path, name,0)) == NULL)
+  if((dp = enameparent(env, path, name, 0)) == NULL)
   {
     get_parent_name(path, pname, name);
-    dp = create(env, pname, T_DIR, O_RDWR);
+    if(pname[0] == 0)
+    {
+      *err = -EEXIST;
+      elock(&rootfs->root);
+      return &rootfs->root;
+    }
+    dp = create(env, pname, T_DIR, O_RDWR, err);
     if(dp == NULL)
     {
       return NULL;
@@ -1158,6 +1171,7 @@ create(struct dirent* env, char *path, short type, int mode)
   if ((ep = ealloc(dp, name, mode)) == NULL) {
     eunlock(dp);
     eput(dp);
+    *err = -EINVAL;
     return NULL;
   }
   
@@ -1166,13 +1180,14 @@ create(struct dirent* env, char *path, short type, int mode)
     eunlock(dp);
     eput(ep);
     eput(dp);
+    *err = -EINVAL;
     return NULL;
   }
 
   eunlock(dp);
   eput(dp);
-
   elock(ep);
+  *err = 0;
   return ep;
 }
 

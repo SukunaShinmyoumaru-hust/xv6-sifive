@@ -152,6 +152,7 @@ int                 eread(struct dirent *entry, int user_dst, uint64 dst, uint o
 int                 ewrite(struct dirent *entry, int user_src, uint64 src, uint off, uint n);
 int                 emount(struct fs* fatfs,char* mnt);
 int                 eumount(char* mnt);
+int                 hashpath(char* name);
 int                 isdirempty(struct dirent *dp);
-struct dirent*      create(struct dirent* env, char *path, short type, int mode);
+struct dirent*      create(struct dirent* env, char *path, short type, int mode, int *err);
 #endif

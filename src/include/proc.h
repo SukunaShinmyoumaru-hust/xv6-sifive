@@ -149,10 +149,13 @@ struct proc {
   struct file **ofile;        // Open files
   int *exec_close;        // Open files
   struct dirent *cwd;          // Current directory
-  char name[16];               // Process name (debugging)
+  char name[20];               // Process name (debugging)
   int tmask;                    // trace mask
+  uint64 sleep_expire;			// wake up time for sleeping
   struct tms proc_tms;
   struct list dlist;
+  struct list c_list;
+  struct list sib_list;
   struct vma *vma;
   uint64 q;
   map_fix *mf;
@@ -164,7 +167,15 @@ struct proc {
   uint64 set_child_tid;
   uint64 clear_child_tid;
   struct robust_list_head *robust_list;
+  int umask;
+  int vswtch;
+  int ivswtch;
 };
+
+
+static inline struct proc* sib_getproc(struct list* list){
+  return dlist_entry(list,struct proc,sib_list);
+}
 
 #define NOFILEMAX(p) (p->filelimit<NOFILE?p->filelimit:NOFILE)
 
@@ -186,7 +197,7 @@ void            userinit(void);
 void            getcharinit(void);
 int             wait(uint64);
 int             wait4pid(int, uint64);
-void            wakeup(void*);
+int             wakeup(void*);
 void            yield(void);
 void            procdump(void);
 uint64          procnum(void);

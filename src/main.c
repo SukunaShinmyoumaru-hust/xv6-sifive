@@ -12,6 +12,7 @@
 #include "include/disk.h"
 #include "include/timer.h"
 #include "include/trap.h"
+#include "include/plic.h"
 #include "include/printf.h"
 #include "include/proc.h"
 #include "include/buf.h"
@@ -62,6 +63,7 @@ main(unsigned long hartid, unsigned long dtb_pa)
     timerinit();     // init a lock for timer
     trapinithart();  // install kernel trap vector, including interrupt handler
     procinit();
+    plicinit();
     binit();
     disk_init();
     fs_init();

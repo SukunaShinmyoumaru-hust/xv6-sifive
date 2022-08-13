@@ -1,3 +1,5 @@
+#ifndef __SBI_H
+#define __SBI_H
 #include"types.h"
 
 #define SBI_SET_TIMER 0
@@ -71,8 +73,22 @@ static inline void shutdown() {
     //panic("shutdown");
 }
 
+static inline void sbi_set_mie(void) {
+	sbi_call(0x0A000005, 0, 0, 0);
+}
+/*
 static inline void set_timer(uint64 stime) {
     sbi_call(SBI_SET_TIMER, stime, 0, 0);
+}
+*/
+
+// Time Extension 
+
+#define TIME_EID 	0x54494d45
+#define TIME_SET_TIMER 	0
+
+static inline struct sbiret set_timer(uint64 stime_value) {
+	return a_sbi_ecall(TIME_EID, TIME_SET_TIMER, stime_value, 0, 0, 0, 0, 0);
 }
 
 static inline void start_hart(uint64 hartid,uint64 start_addr, uint64 a1) {
@@ -92,3 +108,5 @@ static inline int sbi_hsm_hart_status(unsigned long hart){
     ret = a_sbi_ecall(0x48534D, 2, hart, 0, 0, 0, 0, 0);
     return (ret.error != 0 ? (int)ret.error : (int)ret.value);
 }
+
+#endif
