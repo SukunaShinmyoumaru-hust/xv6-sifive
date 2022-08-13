@@ -247,7 +247,13 @@ found:
   p->gid = 0;
   p->vswtch = 0;
   p->ivswtch = 0;
+  p->sleep_expire = 0;
   p->q = NULL;
+  // times for process performance 
+  p->proc_tms.utime = 0;
+  p->proc_tms.stime = 0;
+  p->proc_tms.cutime = 0;
+  p->proc_tms.cstime = 0;
   list_init(&p->c_list);
   list_init(&p->sib_list);
   // Allocate a trapframe page.

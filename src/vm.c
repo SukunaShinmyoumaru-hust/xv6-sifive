@@ -63,6 +63,7 @@ kvminithart()
   w_satp(MAKE_SATP(kernel_pagetable));
   // reg_info();
   sfence_vma();
+  //printf("[kvm]readtime:%p\n",*(uint64*)(PLIC_V));
   __debug_info("kvminithart\n");
 }
 

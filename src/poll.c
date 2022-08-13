@@ -76,7 +76,7 @@ static int poll_sched_timeout(struct poll_wait_queue *pwq, uint64 expire)
 		p->sleep_expire = 0;
 	release(&p->lock);
 
-	__debug_info("poll_sched_timeout", "pwq=%p, ret=%d\n", pwq, ret);
+	//__debug_info("poll_sched_timeout", "pwq=%p, ret=%d\n", pwq, ret);
 
 	return ret;
 }
@@ -137,7 +137,8 @@ int pselect(int nfds, struct fdset *readfds, struct fdset *writefds, struct fdse
 		if (expire == 0)
 			immediate = 1;			// don't sleep
 		else 
-			expire += readtime();	// overflow?
+			//expire += readtime();	// overflow?
+			expire += r_time();	// overflow?
 	} else
 		expire = 0;					// infinity
 
