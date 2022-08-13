@@ -51,7 +51,61 @@ sys_ppoll(void){
 uint64
 sys_pselect6()
 {
-  
+  	int nfds;
+	uint64 urfds, uwfds, uexfds;
+	uint64 utoaddr, usmaddr;
+	
+	argint(0, &nfds);
+	argaddr(1, &urfds);
+	argaddr(2, &uwfds);
+	argaddr(3, &uexfds);
+	argaddr(4, &utoaddr);
+	argaddr(5, &usmaddr);
+	
+	if (nfds <= 0 || nfds > FDSET_SIZE)
+		return -EINVAL;
+	if (!(urfds || uwfds || uexfds))
+		return -EINVAL;
+
+	struct fdset rfds, wfds, exfds;
+	struct timespec timeout;
+	__sigset_t sigmask;
+
+	if (urfds && either_copyin(1, (char *)&rfds, urfds, sizeof(struct fdset)) < 0)
+		return -EFAULT;
+	if (uwfds && either_copyin(1, (char *)&wfds, uwfds, sizeof(struct fdset)) < 0)
+		return -EFAULT;
+	if (uexfds && either_copyin(1, (char *)&exfds, uexfds, sizeof(struct fdset)) < 0)
+		return -EFAULT;
+	if (utoaddr && either_copyin(1, (char *)&timeout, utoaddr, sizeof(timeout)) < 0)
+		return -EFAULT;
+	if (usmaddr && either_copyin(1, (char *)&sigmask, usmaddr, sizeof(sigmask)) < 0)
+		return -EFAULT;
+
+	struct proc *p = myproc();
+	if (p->tmask) {
+		printf(") ...\n");
+	}
+
+	int ret = pselect(nfds,
+				urfds ? &rfds: NULL,
+				uwfds ? &wfds: NULL,
+				uexfds ? &exfds: NULL,
+				utoaddr ? &timeout : NULL,
+				usmaddr ? &sigmask : NULL
+			);
+
+	if (urfds)
+		either_copyout(1, urfds, (char *)&rfds, sizeof(struct fdset));
+	if (uwfds)
+		either_copyout(1, uwfds, (char *)&wfds, sizeof(struct fdset));
+	if (uexfds)
+		either_copyout(1, uexfds, (char *)&exfds, sizeof(struct fdset));
+
+	if (p->tmask) {
+		printf("pid %d: return from pselect(", p->pid);
+	}
+	return ret;
   return 0;
 }
 

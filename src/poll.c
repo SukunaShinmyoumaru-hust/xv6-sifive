@@ -128,10 +128,10 @@ int pselect(int nfds, struct fdset *readfds, struct fdset *writefds, struct fdse
 	// struct poll_wait_queue *pwait;
 	int immediate = 0;
 	
-	
-	__debug_info("pselect", "timeout={%ds, %dns}\n", 
+	/*
+	__debug_info("pselect timeout={%ds, %dns}\n", 
 				timeout ? timeout->tv_sec : -1, timeout ? timeout->tv_nsec : -1);
-
+*/
 	if (timeout) {
 		expire = convert_from_timespec(timeout);
 		if (expire == 0)
