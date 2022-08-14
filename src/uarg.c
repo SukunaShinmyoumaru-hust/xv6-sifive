@@ -139,12 +139,12 @@ argstrvec(int n,char** argv,int max){
       argv[i] = 0;
       break;
     }
-    argv[i] = kmalloc(256);
+    argv[i] = kmalloc(0x100);
     if(argv[i] == 0){
       __debug_warn("[argstrvec] no more space for argv[%d]\n",i);
       goto bad;
     }
-    if(fetchstr(uarg, argv[i], 0x20) < 0){
+    if(fetchstr(uarg, argv[i], 0x100) < 0){
       __debug_warn("[argstrvec] fetch argv[%d] string bad\n",i);
       goto bad;
     }

@@ -210,12 +210,23 @@ exec(char *path, char **argv, char **env)
   struct dirent *ep;
   np->trapframe = allocpage();
   memcpy(np->trapframe,p->trapframe,sizeof(struct trapframe));
-  /*
+ /*
   __debug_warn("[exec] exec %s\n",path);
   for(int aaa = 0;argv[aaa];aaa++){
     __debug_warn("[exec] exec argv[%d] %s\n",aaa,argv[aaa]);
   }
   */
+  
+  /*
+  if(strncmp(path,"/bin/sh",10)==0){
+    strncpy(path,"/busybox",10);
+  }
+  */
+  
+  
+  if(strncmp(path,argv[0],0x100)!=0){
+    strncpy(argv[0],path,0x100);
+  }
   
   if ((proc_pagetable(np, 0, 0)) == NULL) {
     __debug_warn("[exec]vma init bad\n");
@@ -228,9 +239,10 @@ exec(char *path, char **argv, char **env)
   }
   
   elock(ep);
-  
-  int len = strlen(ep->filename);
-  if(strncmp(ep->filename+len-3,".sh",3)==0){
+  int inreload = 0;
+reload:
+  // Check ELF header
+  if(readelfhdr(ep,&elf)<0){    
     shflag = 1;
     eunlock(ep);
     eput(ep);
@@ -239,14 +251,14 @@ exec(char *path, char **argv, char **env)
       goto bad;
     }
     elock(ep);
+    inreload++;
+    if(inreload==1)goto reload;
+    else{
+      __debug_warn("[exec] reload many times\n");
+    }
   }
   
   
-  // Check ELF header
-  if(readelfhdr(ep,&elf)<0){
-    __debug_warn("[exec] %s is not a elf\n", path);
-    goto bad;
-  }
   struct proghdr phdr = {0};
   entry = loadelf(np,ep,&elf,&phdr,0);
   if(entry==-1){
@@ -301,6 +313,10 @@ exec(char *path, char **argv, char **env)
   if(shflag){
     if((sp = ustackpushstr(np->pagetable,ustack,"sh",sp,stackbase))==-1){
       __debug_warn("[exec]push argv string bad\n");
+      goto bad;
+    }
+    if((sp = ustackpushstr(np->pagetable,environ,"PATH=/",sp,stackbase))==-1){
+      __debug_warn("[exec]push env string bad\n");
       goto bad;
     }
   }

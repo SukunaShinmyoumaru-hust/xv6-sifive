@@ -111,8 +111,10 @@ $K/kernel:$K/syscall.c $(OBJS) $(LINKER)
 	@$(OBJDUMP) -S $K/kernel > $K/kernel.asm
 	@$(OBJDUMP) -t $K/kernel | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $K/kernel.sym
 
+binmake:$U/initcode
+	./bin/bin.sh
 
-$K/bin.S:$U/initcode
+$K/bin.S:binmake
 
 $K/syscall.c:
 	./syscall/sys.sh
@@ -145,7 +147,7 @@ rebench-gdb:
 
 clean:
 	rm -f *.tex *.dvi *.idx *.aux *.log *.ind *.ilg \
-	*/*.o */*.d */*.asm */*.sym src/include/sysnum.h src/syscall.c \
+	*/*.o */*.d */*.asm */*.sym src/include/sysnum.h src/syscall.c src/bin.S \
 	$U/_* $U/initcode $U/usys.S $K/kernel	
 
 ULIB = $U/usys.o $U/printf.o $U/lua_test.o $U/lmbench_test.o $U/busybox_test.o

@@ -25,6 +25,13 @@ extern char mounts[];
 extern uint64 mounts_size;
 extern char meminfo[];
 extern uint64 meminfo_size;
+extern char lat_sig[];
+extern uint64 lat_sig_size;
+extern char hello[];
+extern uint64 hello_size;
+extern char sh[];
+extern uint64 sh_size;
+struct dirent* loadfile(char* name, char* start, uint64 size, int need);
 
 int devinit()
 {
@@ -32,36 +39,18 @@ int devinit()
   devnum = 0;
   dev = create(NULL,"/dev",T_DIR,0, &err);
   eunlock(dev);
-  struct dirent* ep;
-  ep = create(NULL,"/etc/passwd", T_FILE, 0, &err);
-  eunlock(ep);
-  eput(ep);
-  ep = create(NULL,"/etc/localtime", T_FILE, 0, &err);
-  ewrite(ep, 0, (uint64)localtime, 0, localtime_size);
-  eunlock(ep);
-  eput(ep);
-  ep = create(NULL,"/etc/adjtime", T_FILE, 0, &err);
-  eunlock(ep);
-  eput(ep);
-  ep = create(NULL,"/etc/group", T_FILE, 0, &err);
-  eunlock(ep);
-  eput(ep);
-  ep = create(NULL, "/proc/mounts", T_FILE, 0, &err);
-  ewrite(ep, 0, (uint64)mounts, 0, mounts_size);
-  eunlock(ep);
-  eput(ep);
-  ep = create(NULL, "/proc/meminfo", T_FILE, 0, &err);
-  ewrite(ep, 0, (uint64)meminfo, 0, meminfo_size);
-  eunlock(ep);
-  selfexe = create(NULL, "/proc/self/exe", T_FILE, 0, &err);
-  eunlock(selfexe);
-  ep = create(NULL,"/mytest.sh",T_FILE,0, &err);
-  ewrite(ep, 0, (uint64)sacrifice_start, 0, sacrifice_size);
-  eunlock(ep);
-  eput(ep);
-  ep = create(NULL,"/bin/ls",T_FILE,0, &err);
-  eunlock(ep);
-  eput(ep);
+  loadfile("/etc/passwd", 0, 0, 0);
+  loadfile("/etc/adjtime", 0, 0, 0);
+  loadfile("/etc/group", 0, 0, 0);
+  loadfile("/bin/ls", 0, 0, 0);
+  loadfile("/etc/localtime", localtime, localtime_size, 0);
+  loadfile("/proc/mounts", mounts, mounts_size, 0);
+  loadfile("/proc/meminfo", meminfo, meminfo_size, 0);
+  loadfile("/mytest.sh", sacrifice_start, sacrifice_size, 0);
+  loadfile("/lat_sig", lat_sig, lat_sig_size, 0);
+  loadfile("/tmp/hello", hello, hello_size, 0);
+  loadfile("/bin/sh", sh, sh_size, 0);
+  selfexe = loadfile("/proc/self/exe", 0, 0, 1);
   __debug_info("devinit\n");
   memset(devsw,0,NDEV*sizeof(struct devsw));
   allocdev("console",consoleread,consolewrite);
@@ -70,6 +59,23 @@ int devinit()
   allocdev("zero",zeroread,zerowrite);
   allocdev("rtc",rtcread,rtcwrite);
   return 0;
+}
+
+struct dirent*
+loadfile(char* name, char* start, uint64 size, int need)
+{
+  int err;
+  struct dirent* ep = ename(NULL, name, NULL);
+  if(ep){
+    goto ret;
+  }
+  ep = create(NULL, name, T_FILE, 0, &err);
+  if(size)ewrite(ep, 0, (uint64)start, 0, size);
+  eunlock(ep);
+ret:
+  if(!need)eput(ep);
+  return ep;
+  
 }
 
 int getdevnum(){

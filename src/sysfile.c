@@ -56,12 +56,12 @@ sys_openat()
   if(argint(2, &flags) < 0
    ||argint(3, &mode) <0 )
     return -1;
-  __debug_warn("[sys openat]1flags:%p mode:%p\n",flags,mode);
+  //__debug_warn("[sys openat]1flags:%p mode:%p\n",flags,mode);
   if(mode == 0){
     mode = flags&O_DIRECTORY?0777:0666;
   }
   mode = mode & (~p->umask);
-  __debug_warn("[sys openat]2flags:%p mode:%p\n",flags,mode);
+  //__debug_warn("[sys openat]2flags:%p mode:%p\n",flags,mode);
   if(mode | O_RDWR){
   	flags |= O_RDWR;
   }else if(mode == 0600){
@@ -144,7 +144,7 @@ sys_openat()
     elock(dp);  
   }
   p->exec_close[fd] = 0;
-  __debug_warn("[sys openat] fd:%d openat:%s\n",fd,path);
+  //__debug_warn("[sys openat] fd:%d openat:%s\n",fd,path);
   return fd;
 }
 
@@ -488,11 +488,11 @@ sys_fstatat(void)
         return -1;
     }
   }
-  
+
   // elock dp may cause deadlock
   ep = ename(dp, pathname, &devno);
   if(ep == NULL){
-    // printf("[fstatat]path %s not found\n",pathname);
+    //printf("[fstatat]path %s not found\n",pathname);
     return -ENOENT;  
   }
 

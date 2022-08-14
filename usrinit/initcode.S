@@ -35,8 +35,6 @@ end:
 	jal end
 init:
 	.string "./mytest.sh\0"
-path:
-	.string "PATH=/"
 console:
 	.string "/dev/console\0"
 testread:
@@ -47,5 +45,5 @@ argv:
 	.dword init
 	.dword 0
 env:
-	.dword path
+	.dword 0
 	
