@@ -154,12 +154,13 @@ int
 zero_out(uint64 dstva, uint64 len)
 {
   uint64 n, va0, pa0;
+  uint64 ret = 0;
   pagetable_t pagetable = myproc()->pagetable;
   while(len > 0){
     va0 = PGROUNDDOWN(dstva);
     pa0 = walkaddr(pagetable, va0);
     if(pa0 == NULL){
-      return -1;
+      return ret;
     }
     n = PGSIZE - (dstva - va0);
     if(n > len)
@@ -167,10 +168,11 @@ zero_out(uint64 dstva, uint64 len)
     memset((void *)(pa0 + (dstva - va0)), 0, n);
 
     len -= n;
+    ret += n;
     dstva = va0 + PGSIZE;
   }
-  //printf("len:%p\n",len);
-  return len;
+
+  return ret;
 }
 
 // Copy to either a user address, or kernel address,

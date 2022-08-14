@@ -123,12 +123,15 @@ nullwrite(int user_dst,uint64 addr,int n){
 
 int
 zeroread(int user_dst,uint64 addr,int n){
-  if(user_dst)return zero_out(addr,n);
+  if(user_dst){
+    return zero_out(addr,n);
+  }
   else{
     memset((void*)addr,0,n);
     return n;
   }
 }
+  
 
 int
 zerowrite(int user_dst,uint64 addr,int n){

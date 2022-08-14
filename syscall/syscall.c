@@ -6,7 +6,7 @@ syscall(void)
 
   num = p->trapframe->a7;
   if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
-    //printf("syscall %d:%s\n",num,sysnames[num]);
+    // printf("syscall %d:%s\n",num,sysnames[num]);
     p->trapframe->a0 = syscalls[num]();
         // trace
     if ((p->tmask & (1 << num)) != 0) {

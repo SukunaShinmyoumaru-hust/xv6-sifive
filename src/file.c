@@ -270,6 +270,7 @@ fileread(struct file *f, uint64 addr, int n)
     case FD_PIPE:
         r = piperead(f->pipe, 1, addr, n);
         if(r<0)r = 0;
+        // __debug_info("[file read] pipe read r:%p\n",r);
         break;
     case FD_DEVICE:
         if(f->major < 0 || f->major >= getdevnum() || !devsw[f->major].read)
@@ -278,17 +279,19 @@ fileread(struct file *f, uint64 addr, int n)
         acquire(&mydev->lk);
         r = mydev->read(1, addr, n);
         release(&mydev->lk);
+        // __debug_info("[file read] device read %s r:%p\n", mydev->name ,r);
         break;
     case FD_ENTRY:
         elock(f->ep);
         if((r = eread(f->ep, 1, addr, f->off, n)) > 0)
           f->off += r;
         eunlock(f->ep);
+        // __debug_info("[file read] eread read r:%p\n",r);
         break;
     default:
       panic("fileread");
   }
-  //printf("[file read]r:%p\n",r);
+  // printf("[file read] r:%p\n",r);
   return r;
 }
 
@@ -303,6 +306,7 @@ filewrite(struct file *f, uint64 addr, int n)
     return -1;
   if(f->type == FD_PIPE){
     ret = pipewrite(f->pipe, 1, addr, n);
+    // __debug_info("[filewrite] pipe write ret = %p\n", ret);
   } else if(f->type == FD_DEVICE){
     if(f->major < 0 || f->major >= getdevnum() || !devsw[f->major].write)
       return -1;
@@ -311,6 +315,7 @@ filewrite(struct file *f, uint64 addr, int n)
     acquire(dlk);
     ret = mydev->write(1, addr, n);
     release(dlk);
+    // __debug_info("[filewrite] device write ret = %p\n", ret);
   } else if(f->type == FD_ENTRY){
     elock(f->ep);
     if (ewrite(f->ep, 1, addr, f->off, n) == n) {
@@ -320,10 +325,10 @@ filewrite(struct file *f, uint64 addr, int n)
       ret = -1;
     }
     eunlock(f->ep);
+    // __debug_info("[filewrite] ewrite write ret = %p\n", ret);
   } else {
     panic("filewrite");
   }
-
   return ret;
 }
 
