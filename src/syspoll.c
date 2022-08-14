@@ -106,7 +106,7 @@ sys_pselect6()
 		printf("pid %d: return from pselect(", p->pid);
 	}
 
-	__debug_info("[sys_pselect6] ret = %d\n", ret);
+	//__debug_info("[sys_pselect6] ret = %d\n", ret);
 	return ret;
 }
 

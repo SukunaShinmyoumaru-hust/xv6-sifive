@@ -148,7 +148,7 @@ sys_openat()
     elock(dp);  
   }
   p->exec_close[fd] = 0;
-  __debug_warn("[sys openat] fd:%d openat:%s\n",fd,path);
+  //__debug_warn("[sys openat] fd:%d openat:%s\n",fd,path);
   return fd;
 }
 
@@ -256,7 +256,7 @@ sys_read(void)
   if(argfd(0, &fd, &f) < 0 || argint(2, &n) < 0 || argaddr(1, &p) < 0)
     return -1;
   
-  printf("[sys read]fd:%d n:%d addr:%p\n",fd,n,p);
+  //printf("[sys read]fd:%d n:%d addr:%p\n",fd,n,p);
   
   return fileread(f, p, n);
 }
@@ -274,7 +274,7 @@ sys_write(void)
     return -1;
   }
 
-  __debug_info("[sys_write] fd=%d, n=%p, p=%p\n", fd, n, p);
+  //__debug_info("[sys_write] fd=%d, n=%p, p=%p\n", fd, n, p);
   return filewrite(f, p, n);
 }
 
@@ -932,8 +932,8 @@ sys_readlinkat(void)
   }
 
   if(dirfd>=0)print_f_info(df);
-  printf("[readlinkat] pathname:%s\n",pathname);
-  printf("[readlinkat] buf:%p bufsz:%p\n",buf,bufsz);
+  //printf("[readlinkat] pathname:%s\n",pathname);
+  //printf("[readlinkat] buf:%p bufsz:%p\n",buf,bufsz);
   struct dirent* ep = ename(dp, pathname, &devno);
 
   if(ep == selfexe){
@@ -943,7 +943,7 @@ sys_readlinkat(void)
     }
     return 0;
   }
-  __debug_info("[sys_readlinkat] pathname not matched\n");
+  //__debug_info("[sys_readlinkat] pathname not matched\n");
   return -1;
 }
 

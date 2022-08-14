@@ -167,8 +167,10 @@ start_handle:
 	}
 
 	frame = kmalloc(sizeof(struct sig_frame));
+	frame->tf = kmalloc(sizeof(struct trapframe));
         // frame = allocpage();
-	tf = kmalloc(sizeof(struct trapframe));
+        struct trapframe tmpframe;
+	tf = &tmpframe;
         //tf = allocpage();
 	// copy mask 
 	// for (int i = 0; i < SIGSET_LEN; i ++) {
@@ -182,21 +184,21 @@ start_handle:
 	// }
 
 	// store proc's trapframe 
-	frame->tf = p->trapframe;
+	*(frame->tf) = *(p->trapframe);
 	tf->epc = (uint64)(SIG_TRAMPOLINE + ((uint64)sig_handler - (uint64)sig_trampoline));
 	tf->sp = p->trapframe->sp;
 	tf->a0 = signum;
 	if (NULL != sigact && sigact->sigact.__sigaction_handler.sa_handler) {
 		//temp way
 		//tf->a1 = (uint64)(SIG_TRAMPOLINE + ((uint64)default_sigaction - (uint64)sig_trampoline));
-		__debug_info("do signal_handler\n");
+		//__debug_info("do signal_handler\n");
 		tf->a1 = (uint64)(sigact->sigact.__sigaction_handler.sa_handler);
 	}
 	else {
 		// use the default handler 
 		tf->a1 = (uint64)(SIG_TRAMPOLINE + ((uint64)default_sigaction - (uint64)sig_trampoline));
 	}
-	p->trapframe = tf;
+	*(p->trapframe) = *tf;
 
 	// insert sig_frame into proc's sig_frame list 
 	frame->next = p->sig_frame;
@@ -264,11 +266,11 @@ void sigreturn(void) {
 	// for (int i = 0; i < SIGSET_LEN; i ++) {
 	// 	p->sig_set.__val[i] = frame->mask.__val[i];
 	// }
-	freepage(p->trapframe);
-	p->trapframe = frame->tf;
+	*(p->trapframe) = *(frame->tf);
+	kfree(frame->tf);
 
 	// remove this frame from list 
 	p->sig_frame = frame->next;
-	freepage(frame);
+	kfree(frame);
 }
 

@@ -302,7 +302,7 @@ piperead(struct pipe *pi,int user, uint64 addr, int n)
 	struct wait_node wait;
 	wait.chan = &wait;
 	pipelock(pi, &wait, PIPE_READER);	// block other readers
-	__debug_info("[piperead] pipe data nread: %p, nwrite: %p\n", pi->nread, pi->nwrite);
+	//__debug_info("[piperead] pipe data nread: %p, nwrite: %p\n", pi->nread, pi->nwrite);
 	while (tot < n) {
 		if ((m = pipereadable(pi, tot > 0)) < 0) {
 			if (tot == 0)
