@@ -47,6 +47,7 @@ entry   73	ppoll
 entry	78	readlinkat
 entry	79	fstatat 
 entry	80	fstat 
+entry	82	fsync
 entry   88	utimensat
 entry	93	exit	
 entry	94	exit_group

@@ -875,14 +875,17 @@ sys_pipe2(void)
 
   if(argaddr(0, &fdarray) < 0)
     return -1;
-  if(pipealloc(&rf, &wf) < 0)
+  if(pipealloc(&rf, &wf) < 0){
+    __debug_warn("[pipe2] pipe alloc failed\n");
     return -1;
+  }
   fd0 = -1;
   if((fd0 = fdalloc(rf)) < 0 || (fd1 = fdalloc(wf)) < 0){
     if(fd0 >= 0)
       p->ofile[fd0] = 0;
     fileclose(rf);
     fileclose(wf);
+    __debug_warn("[pipe2] fd alloc failed\n");
     return -1;
   }
   // if(copyout(p->pagetable, fdarray, (char*)&fd0, sizeof(fd0)) < 0 ||
@@ -893,6 +896,7 @@ sys_pipe2(void)
     p->ofile[fd1] = 0;
     fileclose(rf);
     fileclose(wf);
+    __debug_warn("[pipe2] copy failed\n");
     return -1;
   }
   //printf("[pipe] fd0:%d fd1:%d\n",fd0,fd1);
@@ -945,6 +949,12 @@ sys_readlinkat(void)
   return -1;
 }
 
+
+uint64
+sys_fsync(void)
+{
+  return 0;
+}
 
 uint64 
 sys_sendfile(void)

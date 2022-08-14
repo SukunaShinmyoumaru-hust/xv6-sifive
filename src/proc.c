@@ -197,11 +197,6 @@ freeproc(struct proc *p)
   p->trapframe = 0;
   if(p->mf)
     free_map_fix(p);
-  if(p->ofile)
-    kfree((void*)p->ofile);
-  if(p->ofile)
-    kfree((void*)p->exec_close);
-  p->ofile = 0;
   if(p->kstack)
     freepage((void *)p->kstack);
   if(p->pagetable)
@@ -439,11 +434,12 @@ int clone(uint64 flag, uint64 stack, uint64 ptid, uint64 tls, uint64 ctid) {
   int i, pid;
   struct proc *np;
   struct proc *p = myproc();
-  
+
   if((flag & CLONE_THREAD) && (flag & CLONE_VM))
   {
     // Allocate process.
     if((np = allocproc(p, 1)) == NULL){
+      __debug_warn("alloc process bad\n");
       return -1;
     }
     
@@ -781,6 +777,11 @@ exit(int n)
       p->ofile[fd] = 0;
     }
   }
+  if(p->ofile)
+    kfree((void*)p->ofile);
+  if(p->exec_close)
+    kfree((void*)p->exec_close);
+  p->ofile = 0;
 
   eput(p->cwd);
   p->cwd = 0;

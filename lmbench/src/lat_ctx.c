@@ -148,6 +148,7 @@ initialize_overhead(iter_t iterations, void* cookie)
 		bzero(pState->data, pState->process_size);
 
 	procs = create_pipes(pState->p, pState->procs);
+	printf("initialize overhead procs:%p pState->procs:%p\n",procs,pState->procs);
 	if (procs < pState->procs) {
 		cleanup_overhead(0, cookie);
 		exit(1);

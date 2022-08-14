@@ -19,6 +19,7 @@ struct file {
   char writable;
   struct pipe *pipe; // FD_PIPE
   struct dirent *ep;
+  struct spinlock lk;
   uint64 off;          // FD_ENTRY
   short major;       // FD_DEVICE
   uint32 (*poll)(struct file *, struct poll_table *);

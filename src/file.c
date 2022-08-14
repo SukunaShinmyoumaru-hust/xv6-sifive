@@ -15,25 +15,17 @@
 #include "include/proc.h"
 #include "include/printf.h"
 #include "include/string.h"
+#include "include/kalloc.h"
 #include "include/vm.h"
 #include "include/copy.h"
 
-struct {
-  struct spinlock lock;
-  struct file file[NFILE];
-} ftable;
 
 extern int disk_init_flag;
 
 void
 fileinit(void)
 {
-  initlock(&ftable.lock, "ftable");
   disk_init_flag = 0;
-  struct file *f;
-  for(f = ftable.file; f < ftable.file + NFILE; f++){
-    memset(f, 0, sizeof(struct file));
-  }
   #ifdef DEBUG
   printf("fileinit\n");
   #endif
@@ -43,29 +35,22 @@ fileinit(void)
 struct file*
 filealloc(void)
 {
-  struct file *f;
-
-  acquire(&ftable.lock);
-  for(f = ftable.file; f < ftable.file + NFILE; f++){
-    if(f->ref == 0){
-      f->ref = 1;
-      release(&ftable.lock);
-      return f;
-    }
-  }
-  release(&ftable.lock);
-  return NULL;
+  struct file *f = kmalloc(sizeof(struct file));
+  memset(f,0,sizeof(struct file));
+  f->ref = 1;
+  initlock(&f->lk,"file lock");
+  return f;
 }
 
 // Increment ref count for file f.
 struct file*
 filedup(struct file *f)
 {
-  acquire(&ftable.lock);
+  acquire(&f->lk);
   if(f->ref < 1)
     panic("filedup");
   f->ref++;
-  release(&ftable.lock);
+  release(&f->lk);
   return f;
 }
 
@@ -73,27 +58,23 @@ filedup(struct file *f)
 void
 fileclose(struct file *f)
 {
-  struct file ff;
-
-  acquire(&ftable.lock);
+  acquire(&f->lk);
   if(f->ref < 1)
     panic("fileclose");
   if(--f->ref > 0){
-    release(&ftable.lock);
+    release(&f->lk);
     return;
   }
-  ff = *f;
-  f->ref = 0;
-  f->type = FD_NONE;
-  release(&ftable.lock);
+  release(&f->lk);
 
-  if(ff.type == FD_PIPE){
-    pipeclose(ff.pipe, ff.writable);
-  } else if(ff.type == FD_ENTRY){
-    eput(ff.ep);
-  } else if (ff.type == FD_DEVICE) {
+  if(f->type == FD_PIPE){
+    pipeclose(f->pipe, f->writable);
+  } else if(f->type == FD_ENTRY){
+    eput(f->ep);
+  } else if (f->type == FD_DEVICE) {
 
   }
+  kfree(f);
 }
 
 int fileillegal(struct file* f){
@@ -218,6 +199,11 @@ filestat(struct file *f, uint64 addr)
   }
   return -1;
 }
+void fileoff(struct file* f,uint64 off){
+  acquire(&f->lk);
+  f->off+=off;
+  release(&f->lk);
+}
 
 // Get metadata about file f.
 // addr is a user virtual address, pointing to a struct stat.
@@ -282,7 +268,7 @@ fileread(struct file *f, uint64 addr, int n)
     case FD_ENTRY:
         elock(f->ep);
         if((r = eread(f->ep, 1, addr, f->off, n)) > 0)
-          f->off += r;
+          fileoff(f, r);
         eunlock(f->ep);
         break;
     default:
@@ -299,6 +285,9 @@ filewrite(struct file *f, uint64 addr, int n)
 {
   int ret = 0;
   //printf("major:%d off:%p\n",f->major,consolewrite-(char*)(devsw[f->major].write));
+  if(!n)return 0;
+  //print_f_info(f);
+  //printf("[filewrite] addr:%p n:%p \n",addr,n);
   if(f->writable == 0)
     return -1;
   if(f->type == FD_PIPE){
@@ -315,7 +304,7 @@ filewrite(struct file *f, uint64 addr, int n)
     elock(f->ep);
     if (ewrite(f->ep, 1, addr, f->off, n) == n) {
       ret = n;
-      f->off += n;
+      fileoff(f, n);
     } else {
       ret = -1;
     }
@@ -337,8 +326,6 @@ filesend(struct file* fin,struct file* fout,uint64 addr,uint64 n){
       __debug_warn("[filesend]obtain addr bad\n");
       return -1;
     }
-  }else{
-    off = fin->off;
   }
   if(fileillegal(fin)||fileillegal(fout)){
       __debug_warn("[filesend]fin/fout illegal\n");
@@ -356,6 +343,7 @@ filesend(struct file* fin,struct file* fout,uint64 addr,uint64 n){
     rlen = fileinput(fin,0,(uint64)&buf,rlen,off);
     //printf("[filesend] send rlen %p\n",rlen);
     off += rlen;
+    if(!addr)fileoff(fin,rlen);
     n -= rlen;
     if(!rlen){
       break;
@@ -368,6 +356,7 @@ filesend(struct file* fin,struct file* fout,uint64 addr,uint64 n){
     wlen = fileoutput(fout,0,(uint64)&buf,rlen,fout->off);
     //printf("[filesend] send wlen:%p\n",wlen);
     fout->off += wlen;
+    if(!addr)fileoff(fout,wlen);
     ret += wlen;
     //printf("[filesend]-----start-----\n");
     //printf("[filesend]%s\n",buf);
@@ -381,8 +370,6 @@ filesend(struct file* fin,struct file* fout,uint64 addr,uint64 n){
       __debug_warn("[filesend]obtain addr bad\n");
       return -1;
     }
-  }else{
-    fin->off = off;
   }
   //printf("[filesend]ret:%p\n",ret);
   return ret;
@@ -458,9 +445,11 @@ dirent_next(struct file *f, uint64 addr, int n)
   int copysize = 0;
   elock(f->ep);
   while (1) {
+    acquire(&f->lk);
     lde.d_off = f->off;
     ret = enext(f->ep, &de, f->off, &count);
     f->off += count * 32;
+    release(&f->lk);
     // empty entry
     if(ret == 0) {
       continue;
@@ -508,6 +497,7 @@ filelseek(struct file *f, uint64 offset, int whence)
   {
   case FD_ENTRY: 
     elock(f->ep);
+    acquire(&f->lk);
     switch (whence)
     {
     case SEEK_SET:
@@ -522,10 +512,12 @@ filelseek(struct file *f, uint64 offset, int whence)
     default:
       break;
     }
+    release(&f->lk);
     eunlock(f->ep);
     break;
   case FD_PIPE:
     acquire(&f->pipe->lock);
+    acquire(&f->lk);
     switch (whence)
     {
       case SEEK_SET:
@@ -537,6 +529,7 @@ filelseek(struct file *f, uint64 offset, int whence)
       default:
         break;
     }
+    release(&f->lk);
     release(&f->pipe->lock);
     break;
   default:
