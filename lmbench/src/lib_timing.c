@@ -639,7 +639,7 @@ benchmp_child(benchmp_f initialize,
 
 	if (initialize)
 		(*initialize)(0, cookie);
-	
+
 	if (benchmp_sigterm_handler != SIG_DFL) {
 		signal(SIGTERM, benchmp_sigterm_handler);
 	} else {

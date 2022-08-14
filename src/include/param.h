@@ -2,7 +2,7 @@
 #define __PARAM_H
 #define NPROC        100  // maximum number of processes
 #define NCPU          5  // maximum number of CPUs
-#define NOFILE      101  // open files per process
+#define NOFILE      150  // open files per process
 #define NFILE       101  // open files per system
 #define NINODE       50  // maximum number of active i-nodes
 #define NDEV         10  // maximum major device number

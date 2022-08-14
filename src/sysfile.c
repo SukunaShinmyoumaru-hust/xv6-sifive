@@ -35,7 +35,6 @@ fdalloc(struct file *f)
 }
 
 
-
 uint64
 sys_openat()
 {
@@ -57,16 +56,12 @@ sys_openat()
   if(argint(2, &flags) < 0
    ||argint(3, &mode) <0 )
     return -1;
-  if(myproc()->umask == 0){
-    
+  __debug_warn("[sys openat]1flags:%p mode:%p\n",flags,mode);
+  if(mode == 0){
+    mode = flags&O_DIRECTORY?0777:0666;
   }
-  else if(((mode >> 6) - (myproc()->umask >> 6) > 0) && (mode >> 3) - (myproc()->umask >> 3) > 0 && (mode >> 0) - (myproc()->umask >> 0) > 0){
-    mode = (((mode >> 6) - (myproc()->umask >> 6)) << 6) | (((mode >> 3) - (myproc()->umask >> 3)) << 3) | (((mode >> 0) - (myproc()->umask >> 0)) << 0);
-  }
-  else{
-    return -1;
-  }
-  // __debug_warn("[sys openat]flags:%p mode:%p\n",flags,mode);
+  mode = mode & (~p->umask);
+  __debug_warn("[sys openat]2flags:%p mode:%p\n",flags,mode);
   if(mode | O_RDWR){
   	flags |= O_RDWR;
   }else if(mode == 0600){
@@ -96,6 +91,7 @@ sys_openat()
       }
     }
     if(!ep){
+      if(dp>=0)
       __debug_warn("[sys openat] env path %s not found\n",path);
       return -1;
     }
@@ -148,7 +144,7 @@ sys_openat()
     elock(dp);  
   }
   p->exec_close[fd] = 0;
-  //__debug_warn("[sys openat] fd:%d openat:%s\n",fd,path);
+  __debug_warn("[sys openat] fd:%d openat:%s\n",fd,path);
   return fd;
 }
 
@@ -161,14 +157,14 @@ sys_mkdirat(void)
   int dirfd;
   int mode;
   int err = 0;
-
+  struct proc* p = myproc();
   if((argfd(0, &dirfd, &fp) < 0)){
     if(path[0] != '/' && dirfd != AT_FDCWD)
     {
       __debug_warn("[sys_mkdirat] wrong dirfd\n");
       return -EBADF;
     }
-    dp = myproc()->cwd;
+    dp = p->cwd;
   }
   else
   {
@@ -184,11 +180,11 @@ sys_mkdirat(void)
   {
     return -ENAMETOOLONG;
   }
-  if(myproc()->umask == 0){
+  if(p->umask == 0){
 
   }
-  else if(((mode >> 6) - (myproc()->umask >> 6) > 0) && (mode >> 3) - (myproc()->umask >> 3) > 0 && (mode >> 0) - (myproc()->umask >> 0) > 0){
-    mode = (((mode >> 6) - (myproc()->umask >> 6)) << 6) | (((mode >> 3) - (myproc()->umask >> 3)) << 3) | (((mode >> 0) - (myproc()->umask >> 0)) << 0);
+  else if((mode&p->umask)==p->umask){
+    mode = mode - p->umask;
   }
   else{
     return -1;
@@ -929,9 +925,11 @@ sys_readlinkat(void)
       return -1;
     }
     dp = p->cwd;
+  }else{
+    dp = df->ep;
   }
 
-  if(dirfd>=0)print_f_info(df);
+  //if(dirfd>=0)print_f_info(df);
   //printf("[readlinkat] pathname:%s\n",pathname);
   //printf("[readlinkat] buf:%p bufsz:%p\n",buf,bufsz);
   struct dirent* ep = ename(dp, pathname, &devno);

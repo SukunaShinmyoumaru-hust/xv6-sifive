@@ -212,9 +212,9 @@ void sigframefree(struct sig_frame *head) {
 		{
 		  __debug_warn("[sigframefree] loop!\n");
 		}
-		__debug_info("[sigframefree] free trapframe %p\n", head->tf);
+		//__debug_info("[sigframefree] free trapframe %p\n", head->tf);
 		kfree(head->tf);
-		__debug_info("[sigframefree] free %p\n", head);
+		//__debug_info("[sigframefree] free %p\n", head);
 		kfree(head);
 		head = next;
 	}

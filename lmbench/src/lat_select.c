@@ -168,7 +168,7 @@ doit(iter_t iterations, void * cookie)
 	
 	tv.tv_sec = 0;
 	tv.tv_usec = 0;
-
+	
 	while (iterations-- > 0) {
 		nosave = state->set;
 		select(state->num, 0, &nosave, 0, &tv);
@@ -201,6 +201,7 @@ initialize(iter_t iterations, void *cookie)
 	}
 	state->max++;
 	close(fid);
+
 	if (n != N)
 		exit(1);
 }
