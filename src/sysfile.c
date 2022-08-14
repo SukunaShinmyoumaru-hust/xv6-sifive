@@ -8,6 +8,7 @@
 #include "include/pipe.h"
 #include "include/errno.h"
 
+extern struct dirent *selfexe;
 // Allocate a file descriptor for the given file.
 // Takes over file reference from caller on success.
 static int
@@ -147,7 +148,7 @@ sys_openat()
     elock(dp);  
   }
   p->exec_close[fd] = 0;
-  // __debug_warn("[sys openat] fd:%d openat:%s\n",fd,path);
+  __debug_warn("[sys openat] fd:%d openat:%s\n",fd,path);
   return fd;
 }
 
@@ -255,7 +256,7 @@ sys_read(void)
   if(argfd(0, &fd, &f) < 0 || argint(2, &n) < 0 || argaddr(1, &p) < 0)
     return -1;
   
-  // printf("[sys read]fd:%d n:%d addr:%p\n",fd,n,p);
+  printf("[sys read]fd:%d n:%d addr:%p\n",fd,n,p);
   
   return fileread(f, p, n);
 }
@@ -273,7 +274,7 @@ sys_write(void)
     return -1;
   }
 
-  // __debug_info("[sys_write] fd=%d, n=%p, p=%p\n", fd, n, p);
+  __debug_info("[sys_write] fd=%d, n=%p, p=%p\n", fd, n, p);
   return filewrite(f, p, n);
 }
 
@@ -907,9 +908,13 @@ sys_readlinkat(void)
 {
   int dirfd;
   struct file* df;
+  struct dirent *dp = NULL;
   char pathname[FAT32_MAX_PATH+1];
   uint64 buf;
   int bufsz;
+  struct proc *p = myproc();
+  int devno = -1;
+
   if(argint(3,&bufsz)<0){
     return -1;
   }
@@ -919,18 +924,26 @@ sys_readlinkat(void)
   if(argstr(1,pathname,FAT32_MAX_PATH+1)<0){
     return -1;
   }
-  if(argfd(0,&dirfd,&df)&&dirfd!=AT_FDCWD&&pathname[0]!='/'){
-    return -1;
+  if(argfd(0,&dirfd,&df)<0){
+    if(dirfd!=AT_FDCWD&&pathname[0]!='/'){
+      return -1;
+    }
+    dp = p->cwd;
   }
-  //if(dirfd>=0)print_f_info(df);
-  //printf("[readlinkat] pathname:%s\n",pathname);
-  //printf("[readlinkat] buf:%p bufsz:%p\n",buf,bufsz);
-  if(strncmp(pathname,"proc/self/exe",FAT32_MAX_PATH)==0){
+
+  if(dirfd>=0)print_f_info(df);
+  printf("[readlinkat] pathname:%s\n",pathname);
+  printf("[readlinkat] buf:%p bufsz:%p\n",buf,bufsz);
+  struct dirent* ep = ename(dp, pathname, &devno);
+
+  if(ep == selfexe){
     if(either_copyout(1,buf,myproc()->name,bufsz)<0){
+      __debug_info("[sys_readlinkat] copyout error\n");
       return -1;
     }
     return 0;
   }
+  __debug_info("[sys_readlinkat] pathname not matched\n");
   return -1;
 }
 

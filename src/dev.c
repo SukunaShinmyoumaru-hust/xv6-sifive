@@ -15,6 +15,7 @@ int devnum;
 #define C(x)  ((x)-'@')  // Control-x
 
 struct devsw devsw[NDEV];
+struct dirent* selfexe;
 
 extern char sacrifice_start[];
 extern uint64 sacrifice_size;
@@ -52,7 +53,8 @@ int devinit()
   ep = create(NULL, "/proc/meminfo", T_FILE, 0, &err);
   ewrite(ep, 0, (uint64)meminfo, 0, meminfo_size);
   eunlock(ep);
-  eput(ep);
+  selfexe = create(NULL, "/proc/self/exe", T_FILE, 0, &err);
+  eunlock(selfexe);
   ep = create(NULL,"/mytest.sh",T_FILE,0, &err);
   ewrite(ep, 0, (uint64)sacrifice_start, 0, sacrifice_size);
   eunlock(ep);

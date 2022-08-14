@@ -120,7 +120,7 @@ sys_prlimit64(void){
   }
   newrlimitaddr = argstruct(2,&new_limit,sizeof(new_limit));
   oldrlimitaddr = argstruct(3,&old_limit,sizeof(old_limit));
-  if(!newrlimitaddr || !oldrlimitaddr) return -1;
+  if(!newrlimitaddr && !oldrlimitaddr) return -1;
   
   // printf("[prlimit]pid:%d resource:%d\n",pid,resource);
   // if(newrlimitaddr)printf("[prlimit]new limit %d %d\n",new_limit.rlim_cur,new_limit.rlim_max);
@@ -132,11 +132,16 @@ sys_prlimit64(void){
     case RLIMIT_NOFILE:
       if(oldrlimitaddr){
         old_limit.rlim_cur = old_limit.rlim_max = NOFILEMAX(limitp);
-        if(copyout(p->pagetable,oldrlimitaddr,(char*)&old_limit,sizeof(old_limit))<0)return -1;
+        if(copyout(p->pagetable,oldrlimitaddr,(char*)&old_limit,sizeof(old_limit))<0){
+          // __debug_info("[sys_prlimit] copyout error\n");
+          return -1;
+        }
       }
+
       if(newrlimitaddr){
         limitp->filelimit = MIN(new_limit.rlim_cur,new_limit.rlim_max);
       }
+      break;
     default:
     	return -1;
   }

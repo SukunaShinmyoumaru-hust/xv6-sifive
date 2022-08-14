@@ -144,7 +144,7 @@ rebench-gdb:
 	make disk.img
 
 clean:
-	rm -f *.tex *.dvi *.idx *.aux *.log *.ind *.ilg screen.0 \
+	rm -f *.tex *.dvi *.idx *.aux *.log *.ind *.ilg \
 	*/*.o */*.d */*.asm */*.sym src/include/sysnum.h src/syscall.c \
 	$U/_* $U/initcode $U/usys.S $K/kernel	
 
