@@ -40,6 +40,14 @@ void timer_tick() {
     set_next_timeout();
 }
 
+uint64 get_ticks()
+{
+    acquire(&tickslock);
+    uint64 ret = ticks;
+    release(&tickslock);
+    return ret;
+}
+
 uint64 get_time_ms() {
     uint64 time = r_time();
     return time / (TICK_FREQ / MSEC_PER_SEC);

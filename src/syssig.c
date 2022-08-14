@@ -107,23 +107,26 @@ sys_prlimit64(void){
   struct rlimit new_limit;
   struct rlimit old_limit;
   struct proc* p = myproc();
-  struct proc* limitp = pid==0?p:findproc(pid);
-  if(!limitp)return -1;
+  
   if(argint(0,&pid)<0){
     return -1;
   }
+
+  struct proc* limitp = pid==0?p:findproc(pid);
+  if(!limitp)return -1;
+
   if(argint(1,&resource)<0){
     return -1;
   }
   newrlimitaddr = argstruct(2,&new_limit,sizeof(new_limit));
   oldrlimitaddr = argstruct(3,&old_limit,sizeof(old_limit));
-  if(newrlimitaddr<0||oldrlimitaddr<0)return -1;
+  if(!newrlimitaddr || !oldrlimitaddr) return -1;
   
-  printf("[prlimit]pid:%d resource:%d\n",pid,resource);
-  if(newrlimitaddr)printf("[prlimit]new limit %d %d\n",new_limit.rlim_cur,new_limit.rlim_max);
-  else printf("[prlimit]new limit (nil)\n");
-  if(oldrlimitaddr)printf("[prlimit]old limit %d %d\n",old_limit.rlim_cur,old_limit.rlim_max);
-  else printf("[prlimit]old limit (nil)\n");
+  // printf("[prlimit]pid:%d resource:%d\n",pid,resource);
+  // if(newrlimitaddr)printf("[prlimit]new limit %d %d\n",new_limit.rlim_cur,new_limit.rlim_max);
+  // else printf("[prlimit]new limit (nil)\n");
+  // if(oldrlimitaddr)printf("[prlimit]old limit %d %d\n",old_limit.rlim_cur,old_limit.rlim_max);
+  // else printf("[prlimit]old limit (nil)\n");
   
   switch(resource){
     case RLIMIT_NOFILE:

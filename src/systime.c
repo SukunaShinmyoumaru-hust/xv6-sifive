@@ -25,6 +25,10 @@ sys_clock_gettime(void){
 	case CLOCK_REALTIME:
 		convert_to_timespec(tmp_ticks,&tsp);
 		break;
+
+	case CLOCK_MONOTONIC:
+		convert_to_timespec(get_ticks(), &tsp);
+		break;
 	
 	default:
 		__debug_warn("[clock gettime]no such support\n");

@@ -1,1 +1,1 @@
-/home/bq/gpipe-rv6/lmbench/bin/XXX/lmbench_all bw_file_rd "$@"
+/home/xl/Documents/gpipe/lmbench/bin/XXX/lmbench_all bw_file_rd "$@"

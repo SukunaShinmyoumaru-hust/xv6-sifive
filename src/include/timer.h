@@ -21,6 +21,7 @@
 
 
 #define CLOCK_REALTIME 0
+#define CLOCK_MONOTONIC	1
 
 extern struct spinlock tickslock;
 extern uint ticks;
@@ -111,6 +112,7 @@ static inline uint64 convert_from_timespec(const struct timespec *ts)
 
 uint64 get_time_ms();
 uint64 get_time_us();
+uint64 get_ticks();
 
 void timerinit();
 void set_next_timeout();

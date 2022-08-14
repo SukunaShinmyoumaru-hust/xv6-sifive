@@ -138,13 +138,13 @@ rebench:
 rebench-gdb:
 	rm -f sd/lmbench_all sd/lmbench_all.txt  sd/lmbench_all.asm
 	make -C lmbench clean
-	make -C lmbench all
+	make -C lmbench debug-all
 	cp ./lmbench/bin/XXX/lmbench_all ./sd/lmbench_all
 	make dumplmbench_all
 	make disk.img
 
 clean:
-	rm -f *.tex *.dvi *.idx *.aux *.log *.ind *.ilg \
+	rm -f *.tex *.dvi *.idx *.aux *.log *.ind *.ilg screen.0 \
 	*/*.o */*.d */*.asm */*.sym src/include/sysnum.h src/syscall.c \
 	$U/_* $U/initcode $U/usys.S $K/kernel	
 

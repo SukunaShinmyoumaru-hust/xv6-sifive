@@ -102,7 +102,7 @@ argstruct(int n,void* st,int len){
   uint64 addr;
   if(argaddr(n,&addr)<0)return -1;
   if(addr&&copyin(myproc()->pagetable,st,addr,len)<0){
-    return -1;
+    return 0;
   }
   return addr;
 }
