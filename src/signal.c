@@ -17,10 +17,20 @@
 #include "include/string.h"
 #include "include/vm.h"
 #include "include/pm.h"
+
 extern struct proc* procs[NPROC];
 // Please be noticed that before we insert a new ksig into 
 // the list, we must make sure that there's no sigaction for 
 // the same signum in the sigaction list. 
+
+
+void send_signal(int signum)
+{
+	struct proc* p = myproc();
+	p->killed = signum;
+	p->sig_pending.__val[0] |= 1ul << signum;
+	// sighandle();
+}
 
 static void __insert_sig(struct proc *p, ksigaction_t *ksig) {
 
@@ -155,6 +165,7 @@ void sighandle(void) {
 	ksigaction_t *sigact;
 start_handle: 
 	// search for signal handler 
+	// __debug_info("[sighandle] start handler signum=%d\n", signum);
 	sigact = __search_sig(p, signum);
 
 	// fast skip 
@@ -273,4 +284,3 @@ void sigreturn(void) {
 	p->sig_frame = frame->next;
 	kfree(frame);
 }
-

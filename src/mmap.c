@@ -9,27 +9,31 @@
 #include "include/vm.h"
 #include "include/kalloc.h"
 #include "include/string.h"
+#include "include/errno.h"
 
-uint64 do_mmap_fix(uint64 start, uint64 len, int flags, int fd, off_t offset)
+map_fix* do_mmap_fix(uint64 start, uint64 len, int flags, int fd, off_t offset)
 {
     struct proc* p = myproc();
+    struct file* f = fd < 0 ? NULL : p->ofile[fd];
     map_fix* mf = kmalloc(sizeof(map_fix));
     *mf = (map_fix){
         .addr = start,  //映射起始地址
         .sz = len,
-        .flags = flags,
+        .mmap = (uint64)f,
         .fd = fd,
+        .flags = flags,
         .f_off = offset,
         .next = p->mf,
         .type = MMAP
     };
     p->mf = mf;
-    return 0;
+    return mf;
 }
 
 uint64 do_mmap(uint64 start, uint64 len, int prot, int flags, int fd, off_t offset)
 {
     struct proc *p = myproc();
+    struct vma *vma = NULL;
 
     if(flags & MAP_ANONYMOUS)
     {
@@ -79,11 +83,11 @@ ignore_fd:
 
     if((flags & MAP_FIXED) && start != 0)
     {
-        do_mmap_fix(start, len, flags, fd, offset);
+        vma = (struct vma *)do_mmap_fix(start, len, flags, fd, offset);
         goto skip_vma;
     }
 
-    struct vma *vma = alloc_mmap_vma(p, flags, start, len, perm, fd, offset);
+    vma = alloc_mmap_vma(p, flags, start, len, perm, fd, offset);
     start = vma->addr;
     if(vma == NULL)
     {
@@ -103,9 +107,22 @@ skip_vma:
     }
     else
     {
+        vma->mmap = NULL;
+        if (flags & MAP_SHARED) {
+            vma->mmap |= MMAP_SHARE_FLAG;
+        }
+        vma->mmap |= MMAP_ANONY_FLAG;
+        vma->f_off = 0;
         return start;
     }
 
+    vma->mmap = (uint64)filedup(f);
+    if(!(flags & MAP_SHARED))
+    {
+        return start;
+    }
+    vma->mmap |= MMAP_SHARE_FLAG;
+    
     // read and copy file to memory
     uint64 end_pagespace = mmap_sz % PGSIZE;
     int page_n = PGROUNDUP(mmap_sz) >> PGSHIFT;
@@ -131,7 +148,6 @@ skip_vma:
         va += PGSIZE;
     }
 
-    filedup(f);
     return start;
 }
 
@@ -170,7 +186,7 @@ uint64 do_munmap(struct proc* np,uint64 start, uint64 len)
 {
     struct proc *p = np?np:myproc();
     map_fix* mf = do_munmap_fix(p,start,len);
-    struct vma *vma = mf?mf:addr_sz_locate_vma(p->vma, start, len);
+    struct vma *vma = mf ? mf : addr_sz_locate_vma(p->vma, start, len);
 
     if(vma == NULL || vma->type != MMAP)
     {
@@ -178,12 +194,12 @@ uint64 do_munmap(struct proc* np,uint64 start, uint64 len)
         return -1;
     }
 
-    if(vma->fd == -1||(vma->flags & MAP_PRIVATE))
+    if(vma->fd == -1||(vma->mmap & MAP_PRIVATE))
     {
         goto ignore_wb;
     }
 
-    struct file *f = p->ofile[vma->fd];
+    struct file *f = (struct file *)MMAP_FILE(vma->mmap);
     if(f == NULL)
     {
         //__debug_warn("[do_munmap] open file not found\n");
@@ -248,5 +264,63 @@ free_map_fix(struct proc* p){
 }
 
 
+int do_msync(uint64 addr, uint64 len, int flags)
+{
+    struct proc *p = myproc();
+    struct vma *s = part_locate_vma(p->vma, addr, addr + len);
+    
+    if(s == NULL)
+    {
+        return -EFAULT;
+    }
+
+    // private mapping and anonymous mapping can not be synchronized
+    if(s->type != MMAP || MMAP_ANONY(s->mmap) || !MMAP_SHARE(s->mmap))
+    {
+        return 0;
+    }
+
+    // MS_INVALIDATE does nothing on our system
+    // if (!(flags & (MS_ASYNC | MS_SYNC))) {
+	// 	__debug_info("[do_msync] MS_INVALIDATE does nothing on our system\n");
+	// 	return -1;
+	// }
+
+    // print_vma_info(p);
+
+    struct file *f = MMAP_FILE(s->mmap);
+    uint64 pa, size, total_size = len;
+    uint64 va = addr;
+    int page_n = (s->end - s->addr) >> PGSHIFT;
+
+    f->off = s->f_off;
 
 
+    for(int i = 0; i < page_n; ++i)
+    {
+        size = total_size >= PGSIZE ? PGSIZE : total_size;
+        pte_t * pte = walk(p->pagetable, va, 0);
+
+        if((*pte & PTE_V) == 0)
+        {
+            __debug_warn("[do_msync] page not valid\n");
+            return -1;
+        }
+        if((*pte & PTE_U) == 0)
+        {
+            __debug_warn("[do_msync] page is not user mode\n");
+        }
+        if(*pte & PTE_D){       // write back when PTE_D bit is 1
+            pa = PTE2PA(*pte);
+            if(!pa){
+                __debug_warn("[do_msync] page' pa is 0\n");
+                return -1;
+            }
+            filewrite(f, va, size);
+        }
+        va += PGSIZE;
+        total_size -= size;
+    }
+
+    return 0;
+}

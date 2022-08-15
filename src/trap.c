@@ -66,6 +66,7 @@ void
 usertrap(void)
 {
   int which_dev = 0;
+  int ret = 0;
   // printf("[usertrap] into usertrap\n");
 
   if((r_sstatus() & SSTATUS_SPP) != 0)
@@ -97,12 +98,13 @@ usertrap(void)
   else if((which_dev = devintr()) != 0){
     // ok
   }
-  /* 
-  else if(handle_excp(cause) == 0)
+  else if((ret = handle_excp(cause)) != -2)
   {
-
+    if(ret == -1)
+    {
+      send_signal(SIGSEGV);
+    }
   }
-  */
   else if(cause == 3){
     printf("ebreak\n");
     trapframedump(p->trapframe);
@@ -114,10 +116,11 @@ usertrap(void)
         trapframedump(p->trapframe);
         p->killed = SIGTERM;
   }
+
   if (p->killed) {
 		if (SIGTERM == p->killed)
 			exit(-1);
-		// __debug_info("usertrap", "enter handler\n");
+		// __debug_info("[usertrap] enter handler\n");
 		sighandle();
   }
 
@@ -259,6 +262,25 @@ int devintr(void) {
 		return 2;
 	}
 	else { return 0;}
+}
+
+// be noticed that syscall is not handled here 
+int handle_excp(uint64 scause) {
+	// later implementation may handle more cases, such as lazy allocation, mmap, etc.
+	switch (scause) {
+	case EXCP_STORE_PAGE: 
+	#ifndef QEMU 
+	case EXCP_STORE_ACCESS: 
+	#endif 
+		return handle_page_fault(1, r_stval());
+	case EXCP_LOAD_PAGE: 
+	#ifndef QEMU 
+	case EXCP_LOAD_ACCESS: 
+	#endif 
+		return handle_page_fault(0, r_stval());
+	default: 
+    return -2;
+	}
 }
 
 

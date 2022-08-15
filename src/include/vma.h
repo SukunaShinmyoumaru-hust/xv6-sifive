@@ -17,6 +17,7 @@ struct vma {
     uint64 addr;
     uint64 sz;
     uint64 end;
+    uint64 mmap;
     int flags;
     int fd;
     uint64 f_off;

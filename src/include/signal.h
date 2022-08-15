@@ -16,6 +16,7 @@
 #define SIGQUIT		3
 #define SIGILL		4
 #define SIGTRAP		5
+#define SIGSEGV		11
 #define SIGCHLD		17
 
 // Signal Flags
@@ -86,5 +87,7 @@ void sighandle(void);
 // Return from a signal handling, restore previous trapframe and pending 
 // from sig_frame list. 
 void sigreturn(void);
+
+void send_signal(int signum);
 
 #endif 

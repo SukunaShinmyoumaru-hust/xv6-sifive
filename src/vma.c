@@ -134,6 +134,8 @@ struct vma *alloc_vma(
   vma->perm = perm;
   vma->fd = -1;
   vma->f_off = 0;
+  vma->flags = 0;
+  vma->mmap = 0;
   vma->type = type;
 
   vma->prev = nvma->prev;
@@ -197,7 +199,7 @@ struct vma *addr_locate_vma(struct vma*head, uint64 addr)
 struct vma *part_locate_vma(struct vma *head, uint64 start, uint64 end)
 {
   struct vma *a = addr_locate_vma(head, start);
-  struct vma *b = addr_locate_vma(head, end);
+  struct vma *b = addr_locate_vma(head, end-1);
   if(!a || !b || a != b)
   {
     __debug_warn("[part_locate_vma] start = %p, end = %p, not found\n", start, end);
@@ -226,6 +228,7 @@ struct vma* alloc_mmap_vma(struct proc *p, int flags, uint64 addr, uint64 sz, in
 
   vma->fd = fd;
   vma->f_off = f_off;
+  vma->flags = flags;
   return vma;
 }
 

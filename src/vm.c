@@ -408,3 +408,35 @@ uvmprotect(uint64 va, uint64 len, int perm)
   return 0;
 }
 
+int handle_page_fault(int kind, uint64 stval)
+{
+  struct proc *p = myproc();
+  struct vma *vma1 = addr_locate_vma(p->vma, stval - 1);
+  struct vma *vma2 = addr_locate_vma(p->vma, stval + 1);
+  if(vma2)
+  {
+    if(vma2->type == STACK)
+    {
+      vma1 = vma2;
+    }
+    else 
+    {
+      return -1;
+    }
+  }
+  else if(!vma1)
+  {
+    return -1;
+  }
+
+  pte_t *pte = walk(p->pagetable, stval, 0);
+  if(pte)
+  {
+    if(kind == 1 && (*pte && PTE_W))
+    {
+      return -1;
+    }
+  }
+
+  return 0;
+}

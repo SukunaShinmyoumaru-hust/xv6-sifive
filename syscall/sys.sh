@@ -80,6 +80,7 @@ entry	220	clone
 entry	221	execve
 entry	222	mmap  
 entry	226	mprotect
+entry   227 msync
 entry	260	wait4
 entry	261	prlimit64
 entry	276	renameat2

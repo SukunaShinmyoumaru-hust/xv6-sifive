@@ -174,7 +174,7 @@ disk.img:disk
 	@rm -f disk.img
 	@if [ ! -f "disk.img" ]; then \
 		echo "making disk image..."; \
-		dd if=/dev/zero of=disk.img bs=512k count=16; \
+		dd if=/dev/zero of=disk.img bs=512k count=32; \
 		mkfs.vfat -F 32 disk.img; fi
 	@sudo mount disk.img $(dst)
 	@sudo cp -r sd/* $(dst)

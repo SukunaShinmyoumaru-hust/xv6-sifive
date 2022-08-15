@@ -36,7 +36,7 @@ uint64          kwalkaddr1(pagetable_t pagetable, uint64 va);
 void		 checkkpt(int num);
 void            vmprint(pagetable_t pagetable);
 pte_t *         walk(pagetable_t pagetable, uint64 va, int alloc);
-int             handle_page_fault(int kind, uint stval);
+int             handle_page_fault(int kind, uint64 stval);
 int             kernel_handle_page_fault(int kind, uint stval);
 int 		uvmcopy2(pagetable_t old, pagetable_t new, pagetable_t knew, uint sz);
 void        	freewalk(pagetable_t pagetable);
