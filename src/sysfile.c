@@ -615,6 +615,11 @@ sys_lseek(void)
     return -1;
   }
 
+  if(f->type != FD_ENTRY)
+  {
+    return -ESPIPE;
+  }
+
   ret = filelseek(f, offset, whence);
   return ret;
 }

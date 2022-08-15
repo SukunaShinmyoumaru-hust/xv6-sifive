@@ -18,6 +18,7 @@
 #include "include/kalloc.h"
 #include "include/vm.h"
 #include "include/copy.h"
+#include "include/errno.h"
 
 
 extern int disk_init_flag;
@@ -492,55 +493,30 @@ dirent_next(struct file *f, uint64 addr, int n)
 uint64 
 filelseek(struct file *f, uint64 offset, int whence)
 {
-  uint64 ret = -1;
-  switch (f->type)
+  uint64 cur = f->off;
+  uint64 size = f->ep->file_size;
+  switch (whence)
   {
-  case FD_ENTRY: 
-    elock(f->ep);
-    acquire(&f->lk);
-    switch (whence)
-    {
-    case SEEK_SET:
-      ret = f->off = offset;
-      break;
-    case SEEK_CUR:
-      ret = (f->off += offset);
-      break;
-    case SEEK_END:
-      ret = f->off = f->ep->file_size + offset;
-      break;
-    default:
-      break;
-    }
-    release(&f->lk);
-    eunlock(f->ep);
+  case SEEK_SET:
+   cur = offset;
     break;
-  case FD_PIPE:
-    acquire(&f->pipe->lock);
-    acquire(&f->lk);
-    switch (whence)
-    {
-      case SEEK_SET:
-        ret = f->off = offset;
-        break;
-      case SEEK_CUR:
-        ret = (f->off += offset);
-        break;
-      default:
-        break;
-    }
-    release(&f->lk);
-    release(&f->pipe->lock);
+  case SEEK_CUR:
+    cur += offset;
+    break;
+  case SEEK_END:
+    cur = size + offset;
     break;
   default:
-    break;
+    return -EINVAL;
   }
 
-  return ret;
-}
+  if(cur > 0xffffffff)
+  {
+    return -EFBIG;
+  }
 
-// uint64 
-// sendfile(struct file *fout, struct file* fin, off_t *offset, uint64 count)
-// {
-  
-// }
+  acquire(&f->lk);
+  f->off = cur;
+  release(&f->lk);
+  return cur;
+}
