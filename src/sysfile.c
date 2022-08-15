@@ -56,7 +56,8 @@ sys_openat()
   if(argint(2, &flags) < 0
    ||argint(3, &mode) <0 )
     return -1;
-  //__debug_warn("[sys openat]1flags:%p mode:%p\n",flags,mode);
+  __debug_warn("[sys openat]1flags:%p mode:%p path:%s\n",flags,mode,path);
+  print_vma_info(p);
   if(mode == 0){
     mode = flags&O_DIRECTORY?0777:0666;
   }

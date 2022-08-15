@@ -186,8 +186,9 @@ uint64 do_munmap(struct proc* np,uint64 start, uint64 len)
     struct file *f = p->ofile[vma->fd];
     if(f == NULL)
     {
-        __debug_warn("[do_munmap] open file not found\n");
-        return -1;
+        //__debug_warn("[do_munmap] open file not found\n");
+        // return -1;
+        goto ignore_wb;
     }
 
     uint64 pa, size, total_size = len;
