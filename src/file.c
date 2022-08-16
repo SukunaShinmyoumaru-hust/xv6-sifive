@@ -81,6 +81,7 @@ fileclose(struct file *f)
 int fileillegal(struct file* f){
   switch (f->type) {
     case FD_PIPE:
+        break;
     case FD_DEVICE:
         if(f->major < 0 || f->major >= getdevnum() || !devsw[f->major].read || !devsw[f->major].write)
           return 1;
@@ -213,8 +214,9 @@ filekstat(struct file *f, uint64 addr)
 {
   //struct proc *p = myproc();
   struct kstat kst;
-  
+
   if(f->type == FD_ENTRY){
+    print_f_info(f);
     elock(f->ep);
     ekstat(f->ep, &kst);
     eunlock(f->ep);
@@ -269,7 +271,7 @@ fileread(struct file *f, uint64 addr, int n)
     case FD_ENTRY:
         elock(f->ep);
         if((r = eread(f->ep, 1, addr, f->off, n)) > 0)
-          fileoff(f, r);
+          f->off += r;
         eunlock(f->ep);
         break;
     default:
@@ -305,7 +307,7 @@ filewrite(struct file *f, uint64 addr, int n)
     elock(f->ep);
     if (ewrite(f->ep, 1, addr, f->off, n) == n) {
       ret = n;
-      fileoff(f, n);
+      f->off += n;
     } else {
       ret = -1;
     }
@@ -338,13 +340,14 @@ filesend(struct file* fin,struct file* fout,uint64 addr,uint64 n){
   //print_f_info(fout);
   fileiolock(fin);
   fileiolock(fout);
+  if(!addr)off = fin->off;
   while(n){
     char buf[1024];
     rlen = MIN(n,sizeof(buf));
     rlen = fileinput(fin,0,(uint64)&buf,rlen,off);
     //printf("[filesend] send rlen %p\n",rlen);
     off += rlen;
-    if(!addr)fileoff(fin,rlen);
+    if(!addr)fin->off+=rlen;
     n -= rlen;
     if(!rlen){
       break;
@@ -357,7 +360,7 @@ filesend(struct file* fin,struct file* fout,uint64 addr,uint64 n){
     wlen = fileoutput(fout,0,(uint64)&buf,rlen,fout->off);
     //printf("[filesend] send wlen:%p\n",wlen);
     fout->off += wlen;
-    if(!addr)fileoff(fout,wlen);
+    if(!addr)fout->off+=wlen;
     ret += wlen;
     //printf("[filesend]-----start-----\n");
     //printf("[filesend]%s\n",buf);
@@ -446,11 +449,9 @@ dirent_next(struct file *f, uint64 addr, int n)
   int copysize = 0;
   elock(f->ep);
   while (1) {
-    acquire(&f->lk);
     lde.d_off = f->off;
     ret = enext(f->ep, &de, f->off, &count);
     f->off += count * 32;
-    release(&f->lk);
     // empty entry
     if(ret == 0) {
       continue;
@@ -484,15 +485,16 @@ dirent_next(struct file *f, uint64 addr, int n)
     n -= realsize;
     copysize += realsize;
   }
+  f->off += count * 32;
   eunlock(f->ep);
 
-  f->off += count * 32;
   return copysize; 
 }
 
 uint64 
 filelseek(struct file *f, uint64 offset, int whence)
 {
+  fileiolock(f);
   uint64 cur = f->off;
   uint64 size = f->ep->file_size;
   switch (whence)
@@ -515,8 +517,7 @@ filelseek(struct file *f, uint64 offset, int whence)
     return -EFBIG;
   }
 
-  acquire(&f->lk);
   f->off = cur;
-  release(&f->lk);
+  fileiounlock(f);
   return cur;
 }
