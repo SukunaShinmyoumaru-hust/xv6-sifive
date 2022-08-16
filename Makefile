@@ -217,7 +217,7 @@ add:
 push:
 	git add .
 	git commit -m  "$(commit)"
-	git push origin gpipe
+	git push origin fs
 
 
 
