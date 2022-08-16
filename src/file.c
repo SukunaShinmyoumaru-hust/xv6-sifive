@@ -410,20 +410,14 @@ dirnext(struct file *f, uint64 addr)
 }
 
 struct file*
-findfile(char* path)
+findfile(struct dirent* ep)
 {
-  int dev;
-  struct dirent* ep = ename(NULL,path,&dev);
   struct proc* p = myproc();
   if(ep == NULL)return NULL;
   elock(ep);
   for(int i = 0;i<NOFILEMAX(p);i++){
+    if(!p->ofile[i])continue;
     if(p->ofile[i]->type==FD_ENTRY&&p->ofile[i]->ep==ep){
-      eunlock(ep);
-      eput(ep);
-      return p->ofile[i];
-    }
-    if(p->ofile[i]->type==FD_DEVICE&&p->ofile[i]->major==dev){
       eunlock(ep);
       eput(ep);
       return p->ofile[i];

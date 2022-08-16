@@ -62,5 +62,5 @@ uint64          filesend(struct file* fin,struct file* fout,uint64 addr,uint64 n
 int             dirnext(struct file *f, uint64 addr);
 int             dirent_next(struct file *f, uint64 addr, int n);
 uint64			filelseek(struct file *f, uint64 offset, int whence);
-struct file*    findfile(char* path);
+struct file*    findfile(struct dirent* ep);
 #endif
