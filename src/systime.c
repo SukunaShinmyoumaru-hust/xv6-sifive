@@ -55,6 +55,7 @@ uint64 sys_utimensat(void){
 	struct file *fp = NULL;
 	struct dirent *ep, *dp;
 	int devno = -1;
+	__debug_warn("[sys utimensat] enter\n");
 	if(argfd(0,&fd,&fp)<0 && fd!=AT_FDCWD && fd!=-1){
 	  return -1;
 	}
@@ -72,7 +73,8 @@ uint64 sys_utimensat(void){
 	  return -1;
 	}
 
-
+	
+	__debug_warn("[sys utimensat] getbuf\n");
 	if(buf != NULL){
 	  if(copyin(p->pagetable,(char*)ts,buf,2*sizeof(struct timespec))<0){
 	    return -1;
@@ -86,6 +88,7 @@ uint64 sys_utimensat(void){
 		ts[1].tv_nsec = TICK_TO_US(p->proc_tms.utime);
 	}
 
+	__debug_warn("[sys utimensat] get path\n");
 	if(pathname[0] == '/')
 	{
 		dp = NULL;
@@ -112,8 +115,13 @@ uint64 sys_utimensat(void){
 	}
 
 
+	__debug_warn("[sys utimensat] get file\n");
 	if(pathaddr){
 		f = findfile(pathname);
+		if(!f){
+		  __debug_warn("[sys_utimensat] file not found\n");
+		  return -ENOENT;
+		}
 		f->t0_sec = ts[0].tv_sec;
 		f->t0_nsec = ts[0].tv_nsec;
 		f->t1_sec = ts[1].tv_sec;
@@ -132,6 +140,8 @@ uint64 sys_utimensat(void){
 	// printf("[sys utimesat]timespec[0] tv_sec:%p\ttv_nsec:%p\n",ts[0].tv_sec,ts[0].tv_nsec);
 	// printf("[sys utimesat]timespec[1] tv_sec:%p\ttv_nsec:%p\n",ts[1].tv_sec,ts[1].tv_nsec);
 	// printf("[sys utimesat]flags:%p\n",flags);
+	
+	__debug_warn("[sys utimensat] leave\n");
 	return 0;
 }
 
