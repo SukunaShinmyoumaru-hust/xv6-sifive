@@ -120,6 +120,7 @@ sys_epoll_create1(void)
   }
   
   struct file* f = filealloc();
+  f->type = FD_EPOLL;
   int fd = fdalloc(f);
   if(fd>=0){
     p->exec_close[fd] = flags&O_CLOEXEC;
@@ -127,5 +128,24 @@ sys_epoll_create1(void)
   return fd;
 }
 
+uint64
+sys_epoll_ctl(void)
+{
+  return 0;
+}
 
+uint64
+sys_epoll_pwait(void)
+{
+  while(1){
+  
+  }
+  return 0;
+}
+
+uint64
+sys_prctl(void)
+{
+  return 0;
+}
 

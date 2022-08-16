@@ -112,7 +112,12 @@ devlookup(char *name)
 int
 rtcread(int user_dst, uint64 addr, int n)
 {
-  return 0;
+  uint64 myticks = r_time();
+  int len = MIN(n,sizeof(myticks));
+  if(either_copyout(user_dst, addr, &myticks,len)<0){
+    return 0;
+  }
+  return len;
 }
 
 int

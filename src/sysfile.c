@@ -92,8 +92,8 @@ sys_openat()
       }
     }
     if(!ep){
-      if(dp>=0)
-      __debug_warn("[sys openat] env path %s not found\n",path);
+      if(dp)printf("[sys openat] at directory %s\n",dp->filename);
+      __debug_warn("[sys openat]dirfd:%d env path %s not found\n",dirfd,path);
       return -1;
     }
   }else{

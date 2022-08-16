@@ -26,6 +26,8 @@ entry(){
 
 entry	17	getcwd 
 entry	20	epoll_create1
+entry	21	epoll_ctl
+entry	22	epoll_pwait
 entry	23	dup	
 entry	24	dup3
 entry	25	fcntl	
@@ -53,6 +55,7 @@ entry   88	utimensat
 entry	93	exit	
 entry	94	exit_group
 entry	96	set_tid_address
+entry	98	futex
 entry   101	nanosleep
 entry	103	setitimer
 entry	113	clock_gettime	
@@ -67,6 +70,7 @@ entry	146	setuid
 entry	160	uname 
 entry	165	getrusage 
 entry	166	umask
+entry	167	prctl
 entry	172	getpid 
 entry	173	getppid
 entry	174	getuid
@@ -75,7 +79,10 @@ entry	176	getgid
 entry	177	getegid
 entry	178	gettid 
 entry	179	sysinfo
-# entry	198	socket
+entry	198	socket
+entry	200	bind
+entry	201	listen
+entry	208	setsockopt
 entry	214	brk
 entry	215	munmap 
 entry	220	clone	

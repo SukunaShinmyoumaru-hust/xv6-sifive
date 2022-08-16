@@ -4,6 +4,7 @@
 #include "types.h"
 #include "dev.h"
 #include "fcntl.h"
+#include "socket.h"
 
 struct iovec {
   void  *iov_base;    /* Starting address */
@@ -13,10 +14,11 @@ struct iovec {
 struct poll_table;
 
 struct file {
-  enum { FD_NONE, FD_PIPE, FD_ENTRY, FD_DEVICE, FD_EPOLL } type;
+  enum { FD_NONE, FD_PIPE, FD_ENTRY, FD_DEVICE, FD_EPOLL, FD_SOCKET } type;
   int ref; // reference count
   char readable;
   char writable;
+  struct socket* sk;
   struct pipe *pipe; // FD_PIPE
   struct dirent *ep;
   struct spinlock lk;

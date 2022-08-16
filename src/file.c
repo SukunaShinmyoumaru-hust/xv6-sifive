@@ -74,6 +74,10 @@ fileclose(struct file *f)
     eput(f->ep);
   } else if (f->type == FD_DEVICE) {
 
+  }else if (f->type == FD_EPOLL) {
+
+  }else if (f->type == FD_SOCKET) {
+    socketclose(f->sk);
   }
   kfree(f);
 }
@@ -86,6 +90,8 @@ int fileillegal(struct file* f){
         if(f->major < 0 || f->major >= getdevnum() || !devsw[f->major].read || !devsw[f->major].write)
           return 1;
     case FD_ENTRY:
+        break;
+    case FD_SOCKET:
         break;
     default:
       panic("fileillegal");
@@ -109,7 +115,11 @@ void print_f_info(struct file* f){
         printf("[file]NONE\n");
     	return;
     case FD_EPOLL:
+        printf("[file]EPOLL\n");
     	return;
+    case FD_SOCKET:
+        printf("[file]SOCKET\n");
+        break;
   }
 
 }
@@ -126,6 +136,9 @@ void fileiolock(struct file* f){
         break;
     case FD_EPOLL:
     	return;
+    case FD_SOCKET:
+        acquire(&f->sk->lk);
+    	break;
     case FD_NONE:
     	return;
   }
@@ -143,6 +156,9 @@ void fileiounlock(struct file* f){
         break;
     case FD_EPOLL:
     	return;
+    case FD_SOCKET:
+        release(&f->sk->lk);
+    	break;
     case FD_NONE:
     	return;
     	
@@ -164,6 +180,9 @@ fileinput(struct file* f, int user, uint64 addr, int n, uint64 off){
         break;
     case FD_EPOLL:
     	return 0;
+    case FD_SOCKET:
+    	r = socketread(f->sk, user, addr, n);
+    	break;
     case FD_NONE:
     	return 0;
   }
@@ -185,38 +204,15 @@ fileoutput(struct file* f, int user, uint64 addr, int n, uint64 off){
         break;
     case FD_EPOLL:
     	return 0;
+    case FD_SOCKET:
+    	r = socketread(f->sk, user, addr, n);
+    	break;
     case FD_NONE:
     	return 0;
   }
   return r;
 }
 
-
-
-// Get metadata about file f.
-// addr is a user virtual address, pointing to a struct stat.
-int
-filestat(struct file *f, uint64 addr)
-{
-  // struct proc *p = myproc();
-  struct stat st;
-  
-  if(f->type == FD_ENTRY){
-    elock(f->ep);
-    estat(f->ep, &st);
-    eunlock(f->ep);
-    // if(copyout(p->pagetable, addr, (char *)&st, sizeof(st)) < 0)
-    if(either_copyout(1, addr, (char *)&st, sizeof(st)) < 0)
-      return -1;
-    return 0;
-  }
-  return -1;
-}
-void fileoff(struct file* f,uint64 off){
-  acquire(&f->lk);
-  f->off+=off;
-  release(&f->lk);
-}
 
 // Get metadata about file f.
 // addr is a user virtual address, pointing to a struct stat.
@@ -245,6 +241,10 @@ filekstat(struct file *f, uint64 addr)
     acquire(&mydev->lk);
     devkstat(mydev,&kst);
     release(&mydev->lk);
+  }else if(f->type == FD_SOCKET){
+    acquire(&f->sk->lk);
+    socketkstat(f->sk, &kst);
+    release(&f->sk->lk);
   }else {
     return -1;
   }    
@@ -284,6 +284,11 @@ fileread(struct file *f, uint64 addr, int n)
           f->off += r;
         eunlock(f->ep);
         break;
+    case FD_SOCKET:
+    	acquire(&f->sk->lk);
+    	r = socketwrite(f->sk, 1, addr, n);
+    	release(&f->sk->lk);
+    	break;
     default:
       panic("fileread");
   }
@@ -322,7 +327,11 @@ filewrite(struct file *f, uint64 addr, int n)
       ret = -1;
     }
     eunlock(f->ep);
-  } else {
+  } else if(f->type == FD_SOCKET){
+    acquire(&f->sk->lk);
+    ret = socketwrite(f->sk, 1, addr, n);
+    release(&f->sk->lk);
+  }else {
     panic("filewrite");
   }
   return ret;
@@ -389,37 +398,6 @@ filesend(struct file* fin,struct file* fout,uint64 addr,uint64 n){
   return ret;
 }
 
-// Read from dir f.
-// addr is a user virtual address.
-int
-dirnext(struct file *f, uint64 addr)
-{
-  // struct proc *p = myproc();
-
-  if(f->readable == 0 || !(f->ep->attribute & ATTR_DIRECTORY))
-    return -1;
-
-  struct dirent de;
-  struct stat st;
-  int count = 0;
-  int ret;
-  elock(f->ep);
-  while ((ret = enext(f->ep, &de, f->off, &count)) == 0) {  // skip empty entry
-    f->off += count * 32;
-  }
-  eunlock(f->ep);
-  if (ret == -1)
-    return 0;
-
-  f->off += count * 32;
-  estat(&de, &st);
-  // if(copyout(p->pagetable, addr, (char *)&st, sizeof(st)) < 0)
-  if(either_copyout(1, addr, (char *)&st, sizeof(st)) < 0)
-    return -1;
-
-  return 1;
-}
-
 struct file*
 findfile(char* path)
 {
@@ -429,12 +407,8 @@ findfile(char* path)
   if(ep == NULL)return NULL;
   elock(ep);
   for(int i = 0;i<NOFILEMAX(p);i++){
+    if(!p->ofile[i])continue;
     if(p->ofile[i]->type==FD_ENTRY&&p->ofile[i]->ep==ep){
-      eunlock(ep);
-      eput(ep);
-      return p->ofile[i];
-    }
-    if(p->ofile[i]->type==FD_DEVICE&&p->ofile[i]->major==dev){
       eunlock(ep);
       eput(ep);
       return p->ofile[i];

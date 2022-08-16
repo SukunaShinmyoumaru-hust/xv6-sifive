@@ -248,3 +248,9 @@ sys_nanosleep(void) {
 	return 0;
 }
 
+
+uint64
+sys_futex(void)
+{
+  return 0;
+}

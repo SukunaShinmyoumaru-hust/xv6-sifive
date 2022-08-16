@@ -29,6 +29,7 @@ OBJS += \
 	$K/proc.o \
 	$K/fat32.o \
 	$K/pipe.o \
+	$K/socket.o \
 	$K/file.o \
 	$K/bin.o \
 	$K/dev.o \
@@ -210,7 +211,7 @@ qemu-gdb: $K/kernel .gdbinit
 	@echo "*** Now run 'gdb' in another window." 1>&2
 	$(QEMU) $(QEMUOPTS) -S $(QEMUGDB)
 
-commit?=allbad
+commit?=myredis
 
 add:
 	git remote add origin https://gitlab.eduxiji.net/Cty/oskernrl2022-rv6.git
