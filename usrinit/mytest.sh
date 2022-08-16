@@ -3,6 +3,7 @@
 ./lua_testcode.sh
 ./busybox_testcode.sh
 ./lmbench_testcode.sh
+echo "!TEST FINISH!"
 # lmbench_all lat_syscall -P 1 null
 # lmbench_all lat_syscall -P 1 read
 # lmbench_all lat_syscall -P 1 write

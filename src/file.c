@@ -216,7 +216,6 @@ filekstat(struct file *f, uint64 addr)
   struct kstat kst;
 
   if(f->type == FD_ENTRY){
-    print_f_info(f);
     elock(f->ep);
     ekstat(f->ep, &kst);
     eunlock(f->ep);
