@@ -55,7 +55,6 @@ uint64 sys_utimensat(void){
 	struct file *fp = NULL;
 	struct dirent *ep, *dp;
 	int devno = -1;
-	__debug_warn("[sys utimensat] enter\n");
 	if(argfd(0,&fd,&fp)<0 && fd!=AT_FDCWD && fd!=-1){
 	  return -1;
 	}
@@ -74,7 +73,6 @@ uint64 sys_utimensat(void){
 	}
 
 	
-	__debug_warn("[sys utimensat] getbuf\n");
 	if(buf != NULL){
 	  if(copyin(p->pagetable,(char*)ts,buf,2*sizeof(struct timespec))<0){
 	    return -1;
@@ -88,7 +86,6 @@ uint64 sys_utimensat(void){
 		ts[1].tv_nsec = TICK_TO_US(p->proc_tms.utime);
 	}
 
-	__debug_warn("[sys utimensat] get path\n");
 	if(pathname[0] == '/')
 	{
 		dp = NULL;
@@ -114,25 +111,36 @@ uint64 sys_utimensat(void){
 		return -ENOENT;
 	}
 
-
+	
 	__debug_warn("[sys utimensat] get file\n");
 	if(pathaddr){
+	        __debug_warn("[sys utimensat] pathaddr enter\n");
 		f = findfile(pathname);
 		if(!f){
 		  __debug_warn("[sys_utimensat] file not found\n");
 		  return -ENOENT;
 		}
+	        __debug_warn("[sys utimensat] a\n");
 		f->t0_sec = ts[0].tv_sec;
+	        __debug_warn("[sys utimensat] b\n");
 		f->t0_nsec = ts[0].tv_nsec;
+	        __debug_warn("[sys utimensat] c\n");
 		f->t1_sec = ts[1].tv_sec;
+	        __debug_warn("[sys utimensat] d\n");
 		f->t1_nsec = ts[1].tv_nsec;
 	}
 	else if(fd >= 0 && ts[0].tv_sec != 1){
+	        __debug_warn("[sys utimensat] fd enter\n");
 		if(argfd(0,&fd,&f)<0) return -1;
+	        __debug_warn("[sys utimensat] e\n");
 		if(ts[0].tv_sec > f->t0_sec || ts[0].tv_sec == 0) f->t0_sec = ts[0].tv_sec;
+	        __debug_warn("[sys utimensat] f\n");
 		if(ts[0].tv_nsec > f->t0_nsec || ts[0].tv_nsec == 0) f->t0_nsec = ts[0].tv_nsec;
+	        __debug_warn("[sys utimensat] g\n");
 		if(ts[1].tv_sec > f->t1_sec || ts[1].tv_sec == 0) f->t1_sec = ts[1].tv_sec;
+	        __debug_warn("[sys utimensat] h\n");
 		if(ts[1].tv_nsec > f->t1_nsec || ts[1].tv_nsec == 0) f->t1_nsec = ts[1].tv_nsec;
+	        __debug_warn("[sys utimensat] i\n");
 	}
 
 	// printf("[sys utimesat]fd:%d\tpathname:%s\n",fd,pathaddr?pathname:"(nil)");
