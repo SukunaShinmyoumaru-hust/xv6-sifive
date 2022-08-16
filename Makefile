@@ -219,7 +219,7 @@ add:
 push:
 	git add .
 	git commit -m  "$(commit)"
-	git push origin fs
+	git push origin redis
 
 
 
