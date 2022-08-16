@@ -42,6 +42,11 @@ uint64 START_SINGLE = PHYSTOP - SINGLE_PAGE_NUM * PGSIZE;
 #define __leave_sin_cs \
 	release(&single.lock);
 
+void print_free_page_n()
+{
+	__debug_info("[multiple] %d [single] %d\n", multiple.npage, single.npage);
+}
+
 
 // Allocate n pages 
 static void *__mul_alloc_no_lock(uint64 n) {

@@ -35,6 +35,7 @@ uint64 idlepages(void);
 
 void pm_dump(void);
 
+void print_free_page_n();
 
 #endif
 

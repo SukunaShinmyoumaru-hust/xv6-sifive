@@ -53,6 +53,7 @@ kvminit()
   kvmmap(SIG_TRAMPOLINE, (uint64)sig_trampoline, PGSIZE, PTE_R | PTE_X | PTE_U);
   
   __debug_info("kvminit\n");
+  print_free_page_n();
 }
 
 // Switch h/w page table register to the kernel's page table,
@@ -140,7 +141,11 @@ vmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
       panic("vmunmap: not a leaf");
     if(do_free){
       uint64 pa = PTE2PA(*pte);
-      kfree((void*)pa);
+      if(pa==NULL){
+        printf("NULL pte:%p\n",pte);
+
+      }
+      freepage((void*)pa);
     }
     *pte = 0;
   }

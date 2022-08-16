@@ -362,7 +362,7 @@ proc_pagetable(struct proc *p, struct proc *pp, int thread_create)
       {
         if(nvma->type != TRAP && vma_shallow_mapping(pp->pagetable, p->pagetable, nvma) < 0)
         {
-          //__debug_warn("[proc_pagetable] vma shallow mapping fail\n");
+          __debug_warn("[proc_pagetable] vma shallow mapping fail\n");
           free_vma_list(p);
           freepage(pagetable);
           p->pagetable = NULL;
@@ -377,7 +377,7 @@ proc_pagetable(struct proc *p, struct proc *pp, int thread_create)
       {
         if(nvma->type != TRAP && vma_deep_mapping(pp->pagetable, p->pagetable, nvma) < 0)
         {
-          //__debug_warn("[proc_pagetable] vma deep mapping fail\n");
+          __debug_warn("[proc_pagetable] vma deep mapping fail\n");
           free_vma_list(p);
           freepage(pagetable);
           p->pagetable = NULL;
@@ -434,6 +434,7 @@ int clone(uint64 flag, uint64 stack, uint64 ptid, uint64 tls, uint64 ctid) {
   int i, pid;
   struct proc *np;
   struct proc *p = myproc();
+
 
   if((flag & CLONE_THREAD) && (flag & CLONE_VM))
   {
@@ -508,8 +509,10 @@ int clone(uint64 flag, uint64 stack, uint64 ptid, uint64 tls, uint64 ctid) {
   
   p->killed = np->killed;
   
-  
   release(&np->lock);
+
+  // __debug_info("[clone] pid %d ", pid);
+  // print_free_page_n();
   //__debug_info("epc:%p\n",p->trapframe->epc);
   //__debug_info("[clone] pid %d clone pid %d\n",pid,p->pid);
   return pid;
@@ -747,6 +750,8 @@ wait4pid(int pid,uint64 addr)
       freeproc(child);
       release(&child->lock);
       release(&p->lock);
+      // __debug_info("[wait4pid] pid %d ", pid);
+      // print_free_page_n();
       //__debug_info("[wait4pid]pid%d:%s kidpid:%p\n",p->pid,p->name,kidpid);
       return kidpid;
     }
