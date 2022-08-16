@@ -158,6 +158,7 @@ void backtrace()
     printf("%p\n", ra - 4);
     fp = (uint64 *)*(fp - 2);
   }
+  printf("!TEST FINISH!\n");
 }
 
 void
