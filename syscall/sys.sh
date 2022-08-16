@@ -25,6 +25,7 @@ entry(){
 }
 
 entry	17	getcwd 
+entry	20	epoll_create1
 entry	23	dup	
 entry	24	dup3
 entry	25	fcntl	
@@ -74,13 +75,14 @@ entry	176	getgid
 entry	177	getegid
 entry	178	gettid 
 entry	179	sysinfo
+# entry	198	socket
 entry	214	brk
 entry	215	munmap 
 entry	220	clone	
 entry	221	execve
 entry	222	mmap  
 entry	226	mprotect
-entry   227 msync
+entry   227 	msync
 entry	260	wait4
 entry	261	prlimit64
 entry	276	renameat2

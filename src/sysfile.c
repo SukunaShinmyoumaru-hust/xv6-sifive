@@ -11,7 +11,7 @@
 extern struct dirent *selfexe;
 // Allocate a file descriptor for the given file.
 // Takes over file reference from caller on success.
-static int
+int
 fdallocfrom(struct file *f,int start)
 {
   int fd;
@@ -28,7 +28,7 @@ fdallocfrom(struct file *f,int start)
 
 // Allocate a file descriptor for the given file.
 // Takes over file reference from caller on success.
-static int
+int
 fdalloc(struct file *f)
 {
   return fdallocfrom(f,0);

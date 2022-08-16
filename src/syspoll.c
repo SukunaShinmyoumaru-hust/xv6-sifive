@@ -110,3 +110,22 @@ sys_pselect6()
 	return ret;
 }
 
+uint64
+sys_epoll_create1(void)
+{
+  int flags;
+  struct proc* p=myproc();
+  if(argint(0,&flags)<0){
+    return -1;
+  }
+  
+  struct file* f = filealloc();
+  int fd = fdalloc(f);
+  if(fd>=0){
+    p->exec_close[fd] = flags&O_CLOEXEC;
+  }
+  return fd;
+}
+
+
+

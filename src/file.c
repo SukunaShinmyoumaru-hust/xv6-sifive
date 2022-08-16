@@ -108,6 +108,8 @@ void print_f_info(struct file* f){
     case FD_NONE:
         printf("[file]NONE\n");
     	return;
+    case FD_EPOLL:
+    	return;
   }
 
 }
@@ -122,6 +124,8 @@ void fileiolock(struct file* f){
     case FD_ENTRY:
         elock(f->ep);
         break;
+    case FD_EPOLL:
+    	return;
     case FD_NONE:
     	return;
   }
@@ -137,8 +141,11 @@ void fileiounlock(struct file* f){
     case FD_ENTRY:
         eunlock(f->ep);
         break;
+    case FD_EPOLL:
+    	return;
     case FD_NONE:
     	return;
+    	
   }
 }
 
@@ -155,6 +162,8 @@ fileinput(struct file* f, int user, uint64 addr, int n, uint64 off){
     case FD_ENTRY:
         r = eread(f->ep, user, addr, off, n);
         break;
+    case FD_EPOLL:
+    	return 0;
     case FD_NONE:
     	return 0;
   }
@@ -174,6 +183,8 @@ fileoutput(struct file* f, int user, uint64 addr, int n, uint64 off){
     case FD_ENTRY:
         r = ewrite(f->ep, user, addr, off, n);
         break;
+    case FD_EPOLL:
+    	return 0;
     case FD_NONE:
     	return 0;
   }
