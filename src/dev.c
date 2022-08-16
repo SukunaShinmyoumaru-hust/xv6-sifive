@@ -59,7 +59,7 @@ int devinit()
   allocdev("null",nullread,nullwrite);
   allocdev("zero",zeroread,zerowrite);
   allocdev("rtc",rtcread,rtcwrite);
-  allocdev("urandom",urandomread,uramdomwrite);
+  allocdev("urandom",urandomread,urandomwrite);
   return 0;
 }
 
