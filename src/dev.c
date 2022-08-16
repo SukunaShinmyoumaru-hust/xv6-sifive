@@ -31,6 +31,7 @@ extern char hello[];
 extern uint64 hello_size;
 extern char sh[];
 extern uint64 sh_size;
+uint64 randomseed = 0;
 struct dirent* loadfile(char* name, char* start, uint64 size, int need);
 
 int devinit()
@@ -58,6 +59,7 @@ int devinit()
   allocdev("null",nullread,nullwrite);
   allocdev("zero",zeroread,zerowrite);
   allocdev("rtc",rtcread,rtcwrite);
+  allocdev("urandom",urandomread,uramdomwrite);
   return 0;
 }
 
@@ -192,6 +194,32 @@ consolewrite(int user_dst,uint64 addr,int n){
     addr += len;
   }
   return ret;
+}
+
+char
+getrandom(){
+  randomseed++;
+  return randomseed*0x1938e1%0x100;
+}
+
+int
+urandomread(int user_dst,uint64 addr,int n){
+  int ret = 0;
+  while(n){
+    char c= getrandom();
+    if(either_copyout(user_dst, addr, &c, 1)<0){
+      return ret;
+    }
+    n -= 1;
+    ret += 1;
+    addr += 1;
+  }
+  return ret;
+}
+
+int
+urandomwrite(int user_dst,uint64 addr,int n){
+  return n;
 }
 
 int 

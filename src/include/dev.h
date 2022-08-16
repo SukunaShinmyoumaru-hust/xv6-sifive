@@ -34,6 +34,8 @@ int zeroread(int user_dst,uint64 addr,int n);
 int zerowrite(int user_dst,uint64 addr,int n);
 int consoleread(int user_dst,uint64 addr,int n);
 int consolewrite(int user_dst,uint64 addr,int n);
+int urandomread(int user_dst,uint64 addr,int n);
+int urandomwrite(int user_dst,uint64 addr,int n);
 int devkstat(struct devsw* mydev, struct kstat* kst);
 
 #endif
