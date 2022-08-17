@@ -133,7 +133,7 @@ extern char default_sigaction[];
 
 void sighandle(void) {
 	struct proc *p = myproc();
-
+	__debug_info("Into sighandle\n");
 	int signum = 0;
 	if (p->killed) {
 		signum = p->killed;
@@ -159,7 +159,7 @@ void sighandle(void) {
 		// no signal to handle
 		return ;
 	}
-
+	__debug_info("find the signal need to handle\n");
 	struct sig_frame *frame;
 	struct trapframe *tf;
 	ksigaction_t *sigact;
@@ -180,7 +180,7 @@ start_handle:
 	frame = kmalloc(sizeof(struct sig_frame));
 	frame->tf = kmalloc(sizeof(struct trapframe));
         // frame = allocpage();
-        struct trapframe tmpframe;
+    struct trapframe tmpframe;
 	tf = &tmpframe;
         //tf = allocpage();
 	// copy mask 
@@ -210,13 +210,14 @@ start_handle:
 		tf->a1 = (uint64)(SIG_TRAMPOLINE + ((uint64)default_sigaction - (uint64)sig_trampoline));
 	}
 	*(p->trapframe) = *tf;
-
+	__debug_info("ready to run! the sighandler is %p epc %p\n",p->trapframe->a1,p->trapframe->epc);
 	// insert sig_frame into proc's sig_frame list 
 	frame->next = p->sig_frame;
 	p->sig_frame = frame;
 }
 
 void sigframefree(struct sig_frame *head) {
+	__debug_info("ready to return\n");
 	while (NULL != head) {
 		struct sig_frame *next = head->next;
 		if(next == head)
@@ -229,6 +230,7 @@ void sigframefree(struct sig_frame *head) {
 		kfree(head);
 		head = next;
 	}
+	__debug_info("finish to return\n");
 }
 
 void sigaction_free(ksigaction_t *head) {

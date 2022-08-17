@@ -312,7 +312,7 @@ found:
   p->sig_act = NULL;
   p->sig_frame = NULL;
   for (int i = 0; i < SIGSET_LEN; i ++) {
-	p->sig_pending.__val[i] = 0;
+	  p->sig_pending.__val[i] = 0;
   }
   p->killed = 0;
   
