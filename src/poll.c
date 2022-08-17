@@ -7,6 +7,7 @@
 #include "include/timer.h"
 #include "include/string.h"
 #include "include/printf.h"
+#include "include/kalloc.h"
 #include "include/utils/waitqueue.h"
 
 
@@ -237,3 +238,5 @@ int pselect(int nfds, struct fdset *readfds, struct fdset *writefds, struct fdse
 	//__debug_info("pselect", "return %d\n", ret);
 	return ret;
 }
+
+

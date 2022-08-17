@@ -1,7 +1,6 @@
 #include"include/syscall.h"
 #include"include/pm.h"
 #include"include/copy.h"
-
 // Fetch the uint64 at addr from the current process.
 int
 fetchaddr(uint64 addr, uint64 *ip)
@@ -94,6 +93,40 @@ argfd(int n, int *pfd, struct file **pf)
     return -1;
   if(pf)
     *pf = f;
+  return 0;
+}
+
+int
+argsock(int n, int *pfd, struct file **pf, struct socket** psk)
+{
+  struct file* f;
+  struct socket* sk;
+  int fd;
+  pf = pf?pf:&f;
+  pfd = pfd?pfd:&fd;
+  psk = psk?psk:&sk;
+  if(argfd(n,pfd,pf)<0||(*pf)->type!=FD_SOCKET){
+    return -1;
+  }
+  *psk = (*pf)->sk;
+  if(!*psk)return -1;
+  return 0;
+}
+
+int
+argepoll(int n, int *pfd, struct file **pf, struct epoll** pepoll)
+{
+  struct file* f;
+  struct epoll* epoll;
+  int fd;
+  pf = pf?pf:&f;
+  pfd = pfd?pfd:&fd;
+  pepoll = pepoll?pepoll:&epoll;
+  if(argfd(n,pfd,pf)<0||(*pf)->type!=FD_EPOLL){
+    return -1;
+  }
+  *pepoll = (*pf)->epoll;
+  if(!*pepoll)return -1;
   return 0;
 }
 

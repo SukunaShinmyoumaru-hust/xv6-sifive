@@ -77,6 +77,15 @@ printptr(uint64 x)
     consputc(digits[x >> (sizeof(uint64) * 8 - 4)]);
 }
 
+
+static void
+print16(uint16 x)
+{
+  int i;
+  for (i = 0; i < (sizeof(uint16) * 2); i++, x <<= 4)
+    consputc(digits[x >> (sizeof(uint16) * 8 - 4)]);
+}
+
 // Print to the console. only understands %d, %x, %p, %s.
 void
 printf(char *fmt, ...)
@@ -113,6 +122,9 @@ printf(char *fmt, ...)
       break;
     case 'p':
       printptr(va_arg(ap, uint64));
+      break;
+    case 'o' :
+      print16(va_arg(ap, int));
       break;
     case 's':
       if((s = va_arg(ap, char*)) == 0)

@@ -5,6 +5,7 @@
 #include "dev.h"
 #include "fcntl.h"
 #include "socket.h"
+#include "poll.h"
 
 struct iovec {
   void  *iov_base;    /* Starting address */
@@ -19,6 +20,7 @@ struct file {
   char readable;
   char writable;
   struct socket* sk;
+  struct epoll* epoll;
   struct pipe *pipe; // FD_PIPE
   struct dirent *ep;
   struct spinlock lk;

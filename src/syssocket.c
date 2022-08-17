@@ -47,14 +47,14 @@ sys_setsockopt(void)
   uint64 optvaladdr;
   socklen_t optlen;
   struct file* f = NULL;
-  if(argfd(0, &sockfd, &f)<0){
+  struct socket* sk;
+  if(argsock(0, &sockfd, &f, &sk)<0){
     return -1;
   }
   argint(1, &level);
   argint(2, &optname);
   argaddr(3, &optvaladdr);
   argint(4, &optlen);
-  //struct socket* sk = f->sk;
   printf("[setsockopt]sockfd:%d level:%d optname:%d optaddr:%p optlen:%p\n",sockfd, level,optname, optvaladdr,optlen);
   return 0;
 }
@@ -64,58 +64,173 @@ sys_bind(void)
 {
   int sockfd;
   struct file* f;
-  struct sockaddr* addr;
   socklen_t addrlen;
-  if(argfd(0, &sockfd, &f)<0){
+  struct socket* sk;
+  if(argsock(0, &sockfd, &f, &sk)<0){
     return -1;
   }
-  struct socket* sk = f->sk;
+  slock(sk);
+  if(sk->sk_type==SK_NONE){
+    sk->sk_type = SK_BIND;
+  }else{
+    __debug_warn("socket type conflct\n");
+    goto bad;
+  }
   if(argint(2, &addrlen)<0){
-    return -1;
+    goto bad;
   }
-  addr = kmalloc(addrlen*sizeof(struct sockaddr));
-  printf("sockfd:%d addrlen:%p\n", sockfd, addrlen);
-  if(argstruct(1, addr, addrlen*sizeof(struct sockaddr))==0){
-    return -1;
+  printf("bind sockfd:%d addrlen:%p\n", sockfd, addrlen);
+  if(argstruct(1, &sk->bind_addr, addrlen)==0){
+    goto bad;
   }
-  for(int i = 0;i<addrlen;i++){
-    print_sockaddr(addr+i);
-    socketbind(sk, addr+i);
+  print_sockaddr(&sk->bind_addr);
+  if(bindaddr(sk)<0){
+    printf("[sys bind]bind bad\n");
+    goto bad;
   }
-  kfree(addr);
+  sunlock(sk);
   return 0;
+bad:
+  sk->type =SK_NONE;
+  sunlock(sk);
+  return -1;
 }
 
 uint64
 sys_connect(void){
   int sockfd;
   struct file* f;
-  struct sockaddr* addr;
+  struct socket* sk;
   socklen_t addrlen;
-  if(argfd(0, &sockfd, &f)<0){
+  if(argsock(0, &sockfd, &f, &sk)<0){
     return -1;
   }
-  struct socket* sk = f->sk;
+  slock(sk);
+  if(sk->sk_type==SK_NONE){
+    sk->sk_type = SK_CONNECT;
+  }else{
+    __debug_warn("socket type conflct\n");
+    goto bad;
+  }
   if(argint(2, &addrlen)<0){
+    goto bad;
+  }
+  if(bindalloc(sk)<0){
     return -1;
   }
-  addr = kmalloc(addrlen*sizeof(struct sockaddr));
-  printf("sockfd:%d addrlen:%p\n", sockfd, addrlen);
-  if(argstruct(1, addr, addrlen*sizeof(struct sockaddr))==0){
-    return -1;
+  printf("conncet sockfd:%d addrlen:%p\n", sockfd, addrlen);
+  if(argstruct(1, &sk->addr, addrlen)==0){
+    goto bad;
   }
-  for(int i = 0;i<addrlen;i++){
-    print_sockaddr(addr+i);
-    socketbind(sk, addr+i);
+  print_sockaddr(&sk->addr);
+  if(connect(sk)<0){
+    goto bad;
   }
-  kfree(addr);
+  sunlock(sk);
   return 0;
+bad:
+  sk->type = SK_NONE;
+  sunlock(sk);
+  return -1;
 }
 
 uint64
 sys_sendto(void)
 {
-  return 0;
+  int sockfd;
+  struct file* f;
+  sockaddr* addr;
+  struct socket* sk;
+  uint64 bufaddr;
+  char* buf;
+  uint64 len;
+  int flags;
+  socklen_t addrlen;
+  int addrfree = 0;
+  if(argsock(0, &sockfd, &f, &sk)<0){
+    return -1;
+  }
+  argaddr(1, &bufaddr);
+  argaddr(2, &len);
+  argint(3, &flags);
+  buf = kmalloc(len);
+  if(either_copyin(1, buf, bufaddr,len)<0){
+    return -1;
+  }
+  struct msg* msg = createmsg(buf, len);
+  printf("send buf:%s\n",buf);
+  if(argint(5, &addrlen)<0){
+    return -1;
+  }
+  slock(sk);
+  if(sk->sk_type == SK_CONNECT){
+    addr = &sk->addr;
+  }else{
+    addr = kmalloc(sizeof(sockaddr));
+    addrfree = 1;
+    if(argstruct(4, addr, addrlen)==0){
+      return -1;
+    }
+  }
+  printf(" sendto sockfd:%d addrlen:%p\n", sockfd, addrlen);
+  sendmsgto(addr, msg);
+  destroymsg(msg);
+  sunlock(sk);
+  if(addrfree)kfree(addr);
+  sockaddr tmpaddr = (sockaddr){
+    .addr4 = (struct sockaddr_in){
+      .sin_family = AF_INET,
+      .sin_addr = 0x100007f,
+      .sin_port = 0xeb18,
+    }
+  };
+  print_port_info(findport(&tmpaddr));
+  printf("sendto leave\n");
+  return len;
+}
+
+uint64
+sys_recvfrom(void)
+{
+  int sockfd;
+  struct file* f;
+  sockaddr* addr;
+  struct socket* sk;
+  uint64 bufaddr;
+  int addrfree = 0;
+  //char buf[100];
+  uint64 len;
+  int flags;
+  socklen_t addrlen;
+  if(argsock(0, &sockfd, &f, &sk)<0){
+    return -1;
+  }
+  argaddr(1, &bufaddr);
+  argaddr(2, &len);
+  argint(3, &flags);
+  printf("recvfrom bufaddr:%p\n",bufaddr);
+  if(argint(5, &addrlen)<0){
+    return -1;
+  }
+  slock(sk);
+  if(sk->sk_type == SK_CONNECT){
+    addr = &sk->addr;
+  }else{
+    addr = kmalloc(sizeof(sockaddr));
+    addrfree = 1;
+    if(argstruct(4, addr, addrlen)==0){
+      return -1;
+    }
+  }
+  printf(" recvfrom sockfd:%d addrlen:%p\n", sockfd, addrlen);
+  print_sockaddr(addr);
+  sunlock(sk);
+  if(addrfree)kfree(addr);
+  printf("recvfrom leave\n");
+  for(;;){
+  
+  }
+  return len;
 }
 
 uint64
@@ -124,7 +239,8 @@ sys_listen(void)
   int sockfd;
   int backlog;
   struct file* f;
-  if(argfd(0, &sockfd, &f)<0){
+  struct socket* sk;
+  if(argsock(0, &sockfd, &f, &sk)<0){
     return -1;
   }
   argint(1, &backlog);

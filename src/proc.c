@@ -25,13 +25,15 @@ extern void swtch(struct context*, struct context*);
 struct proc proc[NPROC];
 
 struct proc *initproc;
-struct proc *runproc;
+struct proc *serverproc;
+struct proc *clientproc;
 struct spinlock futex_lock;
 queue readyq;
 struct spinlock waitq_pool_lk;
 queue waitq_pool[WAITQ_NUM];
 int waitq_valid[WAITQ_NUM];
 int firstuserinit;
+int firstwait;
 
 int nextpid = 1;
 int procfirst = 1;
@@ -56,6 +58,7 @@ procinit(){
   initlock(&pid_lock,"pid lock");
   initlock(&futex_lock,"futex lock");
   initproc = NULL;
+  firstwait = 1;
   queue_init(&readyq,NULL);
   waitq_pool_init();
   firstuserinit = 1;
@@ -403,29 +406,28 @@ proc_freepagetable(struct proc *p)
 }
 
 void
-userinit()
+userinit(int a0)
 {
   struct proc *p;
   p = allocproc(0, 0);
-  if(firstuserinit){
+  if(a0){
+    clientproc = p;
+  }else{
     initproc = p;
-    firstuserinit = 0;
-  }
-  else{
-    allocparent(p,initproc);
-    initproc = p;
+    serverproc = p;
   }
   alloc_load_vma(p, (uint64) 0, initcodesize, PTE_R|PTE_W|PTE_X|PTE_U);
   //print_vma_info(p);
   copyout(p->pagetable,0,initcode,initcodesize);
   
+  p->trapframe->a0 = a0;
   p->trapframe->epc = 0x0;      // user program counter
   p->trapframe->sp = type_locate_vma(p->vma,STACK)->end;  // user stack pointer
   
   safestrcpy(p->name, "initcode", sizeof(p->name));
   
   p->state = RUNNABLE;
-  readyq_push(p);//insert to ready queue
+  if(!a0)readyq_push(p);//insert to ready queue
   p->tmask = 0;
   p->cwd = ename(NULL,"/",0);
   release(&p->lock);

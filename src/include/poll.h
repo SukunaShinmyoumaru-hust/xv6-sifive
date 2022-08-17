@@ -21,7 +21,6 @@
 #define POLLOUT_SET	(POLLOUT | POLLERR)
 #define POLLEX_SET	POLLPRI
 
-
 // Argument for poll().
 struct pollfd {
 	int32 fd;         /* file descriptor */
@@ -51,7 +50,6 @@ struct poll_table {
 	poll_func	func;
 	uint32		key;
 };
-
 
 // The files use this to wake process up.
 struct poll_wait_node {

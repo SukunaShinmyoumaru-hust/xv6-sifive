@@ -113,32 +113,116 @@
 #define AF_MAX          PF_MAX
 
 #define MAX_LENGTH_OF_SOCKET 256
+#define ADDR_FAMILY(x) (*(sa_family_t*)(x))
+
+#include"utils/list.h"
+
 typedef int socklen_t;
 typedef unsigned short sa_family_t;
 
-struct sockaddr {
+
+struct sockaddr_in {
     sa_family_t sin_family;
     uint16      sin_port;
     uint32      sin_addr;
-    struct sockaddr* next;
+    char        data[8];
 };
 
+struct in6_addr {
+	union {
+		char   __u6_addr8[16];
+	} __u6_addr;			/* 128-bit IP6 address */
+};
+
+struct sockaddr_in6 {
+    unsigned short int  sin6_family;    /* AF_INET6 */
+    uint16    sin6_port;      /* Transport layer port # */
+    uint32    sin6_flowinfo;  /* IPv6 flow information */
+    struct in6_addr sin6_addr;      /* IPv6 address */
+    uint32   sin6_scope_id;  /* scope id (new in RFC2553) */
+};
+
+typedef union{
+  struct sockaddr_in addr4;
+  struct sockaddr_in6 addr6;
+}sockaddr;
+
+struct msg{
+    char* data;
+    uint64 len;
+    struct list list;
+};
+
+struct netport {
+  int portid;
+  int msgnum;
+  struct netport* conn;
+  struct socket* sk;
+  struct list msg;
+  struct spinlock lk;
+};
+
+#define PORTNUM 0x10000
+#define LOCALIPNUM 10
+struct netIP {
+  enum {IPn,IPv4,IPv6} type;
+  char addr[16];
+  struct netport ports[PORTNUM];
+};
 
 struct socket{
+    int id;
     int domain;
     int type;
     int protocol;
+    enum {SK_NONE, SK_BIND, SK_CONNECT} sk_type;
     char temp[MAX_LENGTH_OF_SOCKET];
-    struct sockaddr* addr;
+    sockaddr bind_addr;
+    sockaddr addr;
     struct spinlock lk;
 };
 
+static inline void port_recv_msg(struct netport* port,struct msg* msg)
+{
+  acquire(&port->lk);
+  port->msgnum++;
+  list_add_before(&port->msg,&msg->list);
+  release(&port->lk);
+}
+
+static inline struct msg* port_pop_msg(struct netport* port)
+{
+  struct msg* msg = NULL;
+  acquire(&port->lk);
+  if(port->msgnum){
+    msg = dlist_entry(list_next(&port->msg),struct msg, list);
+    list_del(&msg->list);
+    port->msgnum--;
+  }
+  release(&port->lk);
+  return msg;
+}
+
+int netinit();
+void portinit(struct netport* port,uint64 portid);
+void IPinit(struct netIP* ip,void* addr,int type);
+struct netport* findport(sockaddr* addr);
+int bindalloc(struct socket* sk);
+int bindaddr(struct socket* sk);
 struct socket* socketalloc();
+int connect(struct socket* sk);
 void socketclose(struct socket* sk);
 int socketread(struct socket* sk, int user, uint64 addr, int n);
 int socketwrite(struct socket* sk, int user, uint64 addr, int n);
 void socketkstat(struct socket* sk, struct kstat* kst);
-void socketbind(struct socket* sk,struct sockaddr* addr);
-void print_sockaddr(struct sockaddr* addr);
+struct msg* createmsg(char* data, uint64 len);
+struct msg* msgcopy(struct msg* msg);
+void destroymsg(struct msg* msg);
+void sendmsgto(sockaddr* addr, struct msg* msg);
+struct msg* recvmsgfrom(sockaddr* addr);
+void slock(struct socket* sk);
+void sunlock(struct socket* sk);
+void print_sockaddr(sockaddr* addr);
+void print_port_info(struct netport* port);
 #endif
 

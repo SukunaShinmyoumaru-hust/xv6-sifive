@@ -17,8 +17,10 @@ int devnum;
 struct devsw devsw[NDEV];
 struct dirent* selfexe;
 
-extern char sacrifice_start[];
-extern uint64 sacrifice_size;
+extern char server_start[];
+extern uint64 server_size;
+extern char client_start[];
+extern uint64 client_size;
 extern char localtime[];
 extern uint64 localtime_size;
 extern char mounts[];
@@ -47,7 +49,8 @@ int devinit()
   loadfile("/etc/localtime", localtime, localtime_size, 0);
   loadfile("/proc/mounts", mounts, mounts_size, 0);
   loadfile("/proc/meminfo", meminfo, meminfo_size, 0);
-  loadfile("/mytest.sh", sacrifice_start, sacrifice_size, 0);
+  loadfile("/server.sh", server_start, server_size, 0);
+  loadfile("/client.sh", client_start, client_size, 0);
   loadfile("/lat_sig", lat_sig, lat_sig_size, 0);
   loadfile("/tmp/hello", hello, hello_size, 0);
   loadfile("/bin/sh", sh, sh_size, 0);

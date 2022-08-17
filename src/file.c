@@ -13,6 +13,7 @@
 #include "include/pipe.h"
 #include "include/stat.h"
 #include "include/proc.h"
+#include "include/epoll.h"
 #include "include/printf.h"
 #include "include/string.h"
 #include "include/kalloc.h"
@@ -75,7 +76,7 @@ fileclose(struct file *f)
   } else if (f->type == FD_DEVICE) {
 
   }else if (f->type == FD_EPOLL) {
-
+    epollclose(f->epoll);
   }else if (f->type == FD_SOCKET) {
     socketclose(f->sk);
   }

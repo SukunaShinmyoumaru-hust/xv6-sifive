@@ -9,6 +9,7 @@
 #include "include/sysinfo.h"
 #include "include/pm.h"
 #include "include/poll.h"
+#include "include/epoll.h"
 #include "include/signal.h"
 
 uint64
@@ -121,6 +122,9 @@ sys_epoll_create1(void)
   
   struct file* f = filealloc();
   f->type = FD_EPOLL;
+  f->readable = 0;
+  f->writable = 0;
+  f->epoll = epollalloc();
   int fd = fdalloc(f);
   if(fd>=0){
     p->exec_close[fd] = flags&O_CLOEXEC;
@@ -131,16 +135,42 @@ sys_epoll_create1(void)
 uint64
 sys_epoll_ctl(void)
 {
+  int epfd;
+  int op;
+  int fd;
+  struct epoll_event event;
+  struct epoll* epoll;
+  struct proc* p = myproc();
+  if(argepoll(0, &epfd,0,&epoll)<0){
+    return -1;
+  }
+  argint(1, &op);
+  argint(2, &fd);
+  if(argstruct(3, &event, sizeof(struct epoll_event))==NULL){
+    return -1;
+  }
+  printf("[epoll ctl]op:%d fd:%d event->mask:%p\n",op,fd,event.events);
+  print_f_info(p->ofile[fd]);
+  switch(op){
+    case EPOLL_CTL_ADD:epolladd(epoll,fd,&event);break;
+    case EPOLL_CTL_DEL:epolldel(epoll,fd);break;
+    case EPOLL_CTL_MOD:break;
+  }
   return 0;
 }
 
 uint64
 sys_epoll_pwait(void)
 {
-  while(1){
-  
+  //printf("[epoll wait]enter\n");
+  extern int firstwait;
+  if(firstwait){
+    extern struct proc* clientproc;
+    extern void readyq_push(struct proc* p);
+    firstwait = 0;
+    readyq_push(clientproc);
   }
-  return 0;
+  return 2;
 }
 
 uint64

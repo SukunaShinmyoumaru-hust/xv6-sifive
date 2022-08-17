@@ -84,6 +84,7 @@ entry	200	bind
 entry	201	listen
 entry	203	connect
 entry	206	sendto
+entry	207	recvfrom
 entry	208	setsockopt
 entry	214	brk
 entry	215	munmap 

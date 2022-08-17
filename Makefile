@@ -50,6 +50,7 @@ OBJS += \
 	$K/trap.o \
 	$K/copy.o \
 	$K/poll.o \
+	$K/epoll.o \
 	$K/cpu.o \
 	$K/vma.o \
 	$K/mmap.o \

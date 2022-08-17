@@ -17,6 +17,7 @@
 #include "include/proc.h"
 #include "include/buf.h"
 #include "include/dev.h"
+#include "include/socket.h"
 #include "include/sysinfo.h"
 static inline void inithartid(unsigned long hartid) {
   asm volatile("mv tp, %0" : : "r" (hartid));
@@ -70,9 +71,11 @@ main(unsigned long hartid, unsigned long dtb_pa)
     logbufinit();
     devinit();
     fileinit();
+    netinit();
     
     //for(int j =0;j<68;j++){
-      userinit();
+    userinit(0);
+    userinit(1);
     //}
     __sync_synchronize();
 

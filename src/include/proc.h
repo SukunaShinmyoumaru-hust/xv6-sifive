@@ -193,7 +193,7 @@ void            scheduler(void) __attribute__((noreturn));
 void            sched(void);
 void            setproc(struct proc*);
 void            sleep(void*, struct spinlock*);
-void            userinit(void);
+void            userinit(int a0);
 void            getcharinit(void);
 int             wait(uint64);
 int             wait4pid(int, uint64);
