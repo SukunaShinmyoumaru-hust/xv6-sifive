@@ -10,7 +10,7 @@
 ./test.sh sort.lua
 ./test.sh strings.lua
 ./busybox_testcode.sh
-./lmbench_testcode.sh
+# ./lmbench_testcode.sh
 echo latency measurements
 lmbench_all lat_syscall -P 1 null
 lmbench_all lat_syscall -P 1 read
