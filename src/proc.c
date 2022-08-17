@@ -26,6 +26,7 @@ struct proc proc[NPROC];
 
 struct proc *initproc;
 struct proc *runproc;
+struct spinlock futex_lock;
 queue readyq;
 struct spinlock waitq_pool_lk;
 queue waitq_pool[WAITQ_NUM];
@@ -53,6 +54,7 @@ waitq_pool_init(){
 void
 procinit(){
   initlock(&pid_lock,"pid lock");
+  initlock(&futex_lock,"futex lock");
   initproc = NULL;
   queue_init(&readyq,NULL);
   waitq_pool_init();
@@ -806,6 +808,101 @@ exit(int n)
   
   }
 }
+
+
+static int 
+futex_wait(int *uaddr, unsigned int flags, int val,
+		      ktime_t *abs_time, int bitset)
+{
+  // printf("wait_addr:%p\n",uaddr);
+  // struct proc *p = myproc();
+  if(!bitset)
+  {
+    return -1;
+  }
+
+  if(!abs_time)
+  {
+
+  }
+  acquire(&futex_lock);
+  // check if val equals to real value at the address(uaddr);
+  int real_val;
+  either_copyin(1, (char*)&real_val, (uint64)uaddr, sizeof(int));
+  if (real_val != val)
+  {
+    // printf("not expected val\n");
+    // printf("real val is %d, val is %d\n", real_val, val);
+    return -1;
+  }
+  uint64 pa = walkaddr(myproc()->pagetable,(uint64)uaddr);
+  // printf("pa:%p\n");
+  // printf("invoke sleep\n");
+  sleep((void*)pa, &futex_lock);
+  return 0;
+}
+
+static int
+futex_wake(int *uaddr, unsigned int flags, int nr_wake, uint32 bitset)
+{
+  // printf("wake_addr:%p\n",uaddr);
+  if(!bitset)
+  {
+    return -1;
+  }
+  uint64 pa = walkaddr(myproc()->pagetable, (uint64)uaddr);
+  wakeup((void *)pa);
+  return 0;
+}
+
+int do_futex(
+    int* uaddr, 
+    int futex_op, 
+    int val, 
+    ktime_t *timeout, 
+    int *addr2,
+    int val2, 
+    int val3)
+{
+  // printf("into do_futex\n");
+  int cmd = futex_op & FUTEX_CMD_MASK;
+	unsigned int flags = 0;
+    /*判断是否为共享锁*/
+	if (!(futex_op & FUTEX_PRIVATE_FLAG)){
+		flags |= FLAGS_SHARED;
+  }
+
+	if (futex_op & FUTEX_CLOCK_REALTIME) {
+		flags |= FLAGS_CLOCKRT;
+		if (cmd != FUTEX_WAIT_BITSET && cmd != FUTEX_WAIT_REQUEUE_PI){
+			return -1;
+    }
+	}
+	switch (cmd) {
+	  case FUTEX_LOCK_PI:
+	  case FUTEX_UNLOCK_PI:
+	  case FUTEX_TRYLOCK_PI:
+	  case FUTEX_WAIT_REQUEUE_PI:
+	  case FUTEX_CMP_REQUEUE_PI:
+      break;
+  }
+   /*根据op参数不同，执行不同分支*/
+	switch (cmd) {
+	  case FUTEX_WAKE:
+      val3 = FUTEX_BITSET_MATCH_ANY;
+    case FUTEX_WAKE_BITSET:
+		  return futex_wake(uaddr, flags, val, val3);
+      break;
+    case FUTEX_WAIT:
+      val3 = FUTEX_BITSET_MATCH_ANY;
+    case FUTEX_WAIT_BITSET:
+		  return futex_wait(uaddr, flags, val, timeout, val3);
+    default:
+      break;
+  }
+  return 0;
+}
+
 
 int kill(int pid,int sig){
 	struct proc* p;

@@ -87,6 +87,38 @@ sys_bind(void)
 }
 
 uint64
+sys_connect(void){
+  int sockfd;
+  struct file* f;
+  struct sockaddr* addr;
+  socklen_t addrlen;
+  if(argfd(0, &sockfd, &f)<0){
+    return -1;
+  }
+  struct socket* sk = f->sk;
+  if(argint(2, &addrlen)<0){
+    return -1;
+  }
+  addr = kmalloc(addrlen*sizeof(struct sockaddr));
+  printf("sockfd:%d addrlen:%p\n", sockfd, addrlen);
+  if(argstruct(1, addr, addrlen*sizeof(struct sockaddr))==0){
+    return -1;
+  }
+  for(int i = 0;i<addrlen;i++){
+    print_sockaddr(addr+i);
+    socketbind(sk, addr+i);
+  }
+  kfree(addr);
+  return 0;
+}
+
+uint64
+sys_sendto(void)
+{
+  return 0;
+}
+
+uint64
 sys_listen(void)
 {
   int sockfd;

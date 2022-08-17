@@ -252,5 +252,55 @@ sys_nanosleep(void) {
 uint64
 sys_futex(void)
 {
+    // printf("Into futex");
+  uint64 uaddr;
+  int op;
+  int val;
+  uint64 utime;
+  struct timespec ut;
+  ktime_t kt;
+  uint64 uaddr2;
+  int val2 = 0;
+  int val3;
+  if (argaddr(0, &uaddr) < 0) {
+		return -1;
+	}
+  if (argint(1, &op) < 0) {
+		return -1;
+	}
+  if (argint(2, &val) < 0) {
+		return -1;
+	}
+  if (argaddr(3, &utime) < 0)
+  {
+    return -1;
+  }
+  if (argaddr(4, &uaddr2) < 0)
+  {
+    return -1;
+  }
+  if (argint(5, &val3) < 0)
+  {
+    return -1;
+  }
+
+  int cmd = op & FUTEX_CMD_MASK;
+  // printf("addr:%p,op:%d,val:%d,cmd=%d,uaddr:%p\n",uaddr,op,val,cmd);
+  if(utime == 0)
+  {
+    // printf("no timeout\n");
+  }
+
+  if(cmd == FUTEX_WAIT)
+  {
+    either_copyout(1, utime, (char*)&ut, sizeof(struct timespec));
+    kt = ktime_set(ut.tv_sec, ut.tv_nsec);
+  }
+
+  if (cmd == FUTEX_REQUEUE || cmd == FUTEX_CMP_REQUEUE ||
+	    cmd == FUTEX_CMP_REQUEUE_PI || cmd == FUTEX_WAKE_OP)
+		val2 = (uint32) (unsigned long) utime;
+
+  do_futex((int*)uaddr, op, val, &kt, (int *)uaddr2, val2, val3);
   return 0;
 }

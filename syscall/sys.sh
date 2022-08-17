@@ -82,6 +82,8 @@ entry	179	sysinfo
 entry	198	socket
 entry	200	bind
 entry	201	listen
+entry	203	connect
+entry	206	sendto
 entry	208	setsockopt
 entry	214	brk
 entry	215	munmap 
