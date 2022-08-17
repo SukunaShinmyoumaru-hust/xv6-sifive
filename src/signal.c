@@ -217,7 +217,7 @@ start_handle:
 }
 
 void sigframefree(struct sig_frame *head) {
-	__debug_info("ready to return\n");
+	
 	while (NULL != head) {
 		struct sig_frame *next = head->next;
 		if(next == head)
@@ -230,7 +230,7 @@ void sigframefree(struct sig_frame *head) {
 		kfree(head);
 		head = next;
 	}
-	__debug_info("finish to return\n");
+	
 }
 
 void sigaction_free(ksigaction_t *head) {
@@ -269,6 +269,7 @@ int sigaction_copy(ksigaction_t **pdst, ksigaction_t const *src) {
 }
 
 void sigreturn(void) {
+	__debug_info("ready to return\n");
 	struct proc *p = myproc();
 
 	if (NULL == p->sig_frame) {	// it's not in a sighandler!
@@ -285,4 +286,5 @@ void sigreturn(void) {
 	// remove this frame from list 
 	p->sig_frame = frame->next;
 	kfree(frame);
+	__debug_info("finish to return\n");
 }
