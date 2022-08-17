@@ -143,7 +143,7 @@ void sighandle(void) {
 		int bit = (unsigned long)(p->killed) % len;
 		p->sig_pending.__val[i] &= ~(1ul << bit++);
 		p->killed = 0;
-		__debug_info("finish1\n");
+		// __debug_info("finish1\n");
 		for (; i < SIGSET_LEN; i ++) {
 			while (bit < len) {
 				if (p->sig_pending.__val[i] & (1ul << bit)) {
@@ -166,7 +166,7 @@ void sighandle(void) {
 	ksigaction_t *sigact;
 start_handle: 
 	// search for signal handler 
-	// __debug_info("[sighandle] start handler signum=%d\n", signum);
+	__debug_info("[sighandle] start handler signum=%d\n", signum);
 	sigact = __search_sig(p, signum);
 
 	// fast skip 
