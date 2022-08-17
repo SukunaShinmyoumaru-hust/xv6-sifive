@@ -270,7 +270,7 @@ int sigaction_copy(ksigaction_t **pdst, ksigaction_t const *src) {
 }
 
 void sigreturn(void) {
-	// __debug_info("ready to return\n");
+	__debug_info("ready to return\n");
 	struct proc *p = myproc();
 
 	if (NULL == p->sig_frame) {	// it's not in a sighandler!
@@ -287,5 +287,5 @@ void sigreturn(void) {
 	// remove this frame from list 
 	p->sig_frame = frame->next;
 	kfree(frame);
-	// __debug_info("finish to return\n");
+	__debug_info("finish to return\n");
 }
