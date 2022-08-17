@@ -106,8 +106,8 @@ usertrap(void)
     }
   }
   else if(cause == 3){
-    printf("ebreak\n");
-    trapframedump(p->trapframe);
+    // printf("ebreak\n");
+    // trapframedump(p->trapframe);
     p->trapframe->epc += 2;
   }
   else {
