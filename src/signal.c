@@ -133,7 +133,7 @@ extern char default_sigaction[];
 
 void sighandle(void) {
 	struct proc *p = myproc();
-	__debug_info("Into sighandle\n");
+	__debug_info("Into sighandle p->killed:%d\n",p->killed);
 	int signum = 0;
 	if (p->killed) {
 		signum = p->killed;
@@ -143,7 +143,7 @@ void sighandle(void) {
 		int bit = (unsigned long)(p->killed) % len;
 		p->sig_pending.__val[i] &= ~(1ul << bit++);
 		p->killed = 0;
-
+		__debug_info("finish1\n");
 		for (; i < SIGSET_LEN; i ++) {
 			while (bit < len) {
 				if (p->sig_pending.__val[i] & (1ul << bit)) {
@@ -159,11 +159,12 @@ void sighandle(void) {
 		// no signal to handle
 		return ;
 	}
-	__debug_info("find the signal need to handle\n");
+	
 	struct sig_frame *frame;
 	struct trapframe *tf;
 	ksigaction_t *sigact;
 start_handle: 
+	__debug_info("find the signal need to handle\n");
 	// search for signal handler 
 	// __debug_info("[sighandle] start handler signum=%d\n", signum);
 	sigact = __search_sig(p, signum);
