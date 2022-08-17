@@ -133,7 +133,7 @@ extern char default_sigaction[];
 
 void sighandle(void) {
 	struct proc *p = myproc();
-	__debug_info("Into sighandle p->killed:%d\n",p->killed);
+	__debug_info("[sighandle] Into sighandle p->killed:%d\n",p->killed);
 	int signum = 0;
 	if (p->killed) {
 		signum = p->killed;
@@ -157,6 +157,7 @@ void sighandle(void) {
 	}
 	else {
 		// no signal to handle
+		__debug_info("[sighandle] no signal to handle\n");
 		return ;
 	}
 	
@@ -164,9 +165,8 @@ void sighandle(void) {
 	struct trapframe *tf;
 	ksigaction_t *sigact;
 start_handle: 
-	__debug_info("find the signal need to handle\n");
 	// search for signal handler 
-	// __debug_info("[sighandle] start handler signum=%d\n", signum);
+	__debug_info("[sighandle] start handler signum=%d\n", signum);
 	sigact = __search_sig(p, signum);
 
 	// fast skip 
