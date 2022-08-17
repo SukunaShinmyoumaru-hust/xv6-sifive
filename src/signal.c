@@ -133,7 +133,7 @@ extern char default_sigaction[];
 
 void sighandle(void) {
 	struct proc *p = myproc();
-	__debug_info("[sighandle] Into sighandle p->killed:%d\n",p->killed);
+	// __debug_info("[sighandle] Into sighandle p->killed:%d\n",p->killed);
 	int signum = 0;
 	if (p->killed) {
 		signum = p->killed;
@@ -157,7 +157,7 @@ void sighandle(void) {
 	}
 	else {
 		// no signal to handle
-		__debug_info("[sighandle] no signal to handle\n");
+		// __debug_info("[sighandle] no signal to handle\n");
 		return ;
 	}
 	
@@ -166,7 +166,7 @@ void sighandle(void) {
 	ksigaction_t *sigact;
 start_handle: 
 	// search for signal handler 
-	__debug_info("[sighandle] start handler signum=%d\n", signum);
+	// __debug_info("[sighandle] start handler signum=%d\n", signum);
 	sigact = __search_sig(p, signum);
 
 	// fast skip 
@@ -211,7 +211,7 @@ start_handle:
 		tf->a1 = (uint64)(SIG_TRAMPOLINE + ((uint64)default_sigaction - (uint64)sig_trampoline));
 	}
 	*(p->trapframe) = *tf;
-	__debug_info("ready to run! the sighandler is %p epc %p\n",p->trapframe->a1,p->trapframe->epc);
+	// __debug_info("ready to run! the sighandler is %p epc %p\n",p->trapframe->a1,p->trapframe->epc);
 	// insert sig_frame into proc's sig_frame list 
 	frame->next = p->sig_frame;
 	p->sig_frame = frame;
@@ -270,7 +270,7 @@ int sigaction_copy(ksigaction_t **pdst, ksigaction_t const *src) {
 }
 
 void sigreturn(void) {
-	__debug_info("ready to return\n");
+	// __debug_info("ready to return\n");
 	struct proc *p = myproc();
 
 	if (NULL == p->sig_frame) {	// it's not in a sighandler!
@@ -287,5 +287,5 @@ void sigreturn(void) {
 	// remove this frame from list 
 	p->sig_frame = frame->next;
 	kfree(frame);
-	__debug_info("finish to return\n");
+	// __debug_info("finish to return\n");
 }
