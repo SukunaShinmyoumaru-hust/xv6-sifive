@@ -286,10 +286,8 @@ int handle_excp(uint64 scause) {
 	case EXCP_LOAD_ACCESS: 
 	#endif 
 		return handle_page_fault(0, r_stval());
-	case 2:
-    print_epc_info();
-    return -2;
   default: 
+    print_epc_info();
     return -2;
 	}
 }
