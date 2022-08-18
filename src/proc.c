@@ -214,7 +214,7 @@ freeproc(struct proc *p)
   p->killed = 0;
   p->xstate = 0;
   p->state = UNUSED;
-
+  
   // free signal 
   sigaction_free(p->sig_act);
 
@@ -291,7 +291,8 @@ found:
     p->ofile[fd] = NULL;
     p->exec_close[fd] = 0;
   }
-  
+  p->epc_num = 0;
+  memset(p->epc_nums,0,sizeof(uint64)*5);
   memset(p->ofile, 0, NOFILE*sizeof(struct file*));
 /*
   for(int i = 0; i < MMAPNUM; ++i){

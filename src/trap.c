@@ -154,6 +154,8 @@ usertrapret(){
   p->trapframe->kernel_trap = (uint64)usertrap;
   p->trapframe->kernel_hartid = r_tp();         // hartid for cpuid()
 
+  p->epc_nums[p->epc_num] = p->trapframe->epc;
+  p->epc_num = (p->epc_num + 1) % 5;
   // set up the registers that trampoline.S's sret will use
   // to get to user space.
   
@@ -264,7 +266,12 @@ int devintr(void) {
 	}
 	else { return 0;}
 }
-
+static void print_epc_info(){
+  struct proc* p = myproc();
+  for(int i = 0;i < 5;i++){
+    printf("epc %d : %p\n",i,p->epc_nums[(p->epc_num - 1 + i) % 5]);
+  }
+}
 // be noticed that syscall is not handled here 
 int handle_excp(uint64 scause) {
 	// later implementation may handle more cases, such as lazy allocation, mmap, etc.
@@ -279,7 +286,10 @@ int handle_excp(uint64 scause) {
 	case EXCP_LOAD_ACCESS: 
 	#endif 
 		return handle_page_fault(0, r_stval());
-	default: 
+	case 2:
+    print_epc_info();
+    return -2;
+  default: 
     return -2;
 	}
 }

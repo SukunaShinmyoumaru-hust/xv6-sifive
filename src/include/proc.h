@@ -170,6 +170,8 @@ struct proc {
   int umask;
   int vswtch;
   int ivswtch;
+  int epc_num;
+  uint64 epc_nums[5];
 };
 
 
