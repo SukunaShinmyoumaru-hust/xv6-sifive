@@ -21,7 +21,6 @@ lmbench_all lat_syscall -P 1 stat /var/tmp/lmbench
 lmbench_all lat_syscall -P 1 fstat /var/tmp/lmbench
 lmbench_all lat_syscall -P 1 open /var/tmp/lmbench
 lmbench_all lat_select -n 100 -P 1 file
-
 lmbench_all lat_pipe -P 1
 lmbench_all lat_proc -P 1 fork
 lmbench_all lat_proc -P 1 exec
