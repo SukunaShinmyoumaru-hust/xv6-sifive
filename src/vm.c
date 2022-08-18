@@ -436,7 +436,7 @@ int handle_page_fault(int kind, uint64 stval)
   struct vma* vma = addr_locate_vma(p->vma, stval);
   if(!vma)
   {
-    __debug_info("[handle_page_fault] vma not found\n");
+    __debug_info("[handle_page_fault] vma not found, stval = %p\n", stval);
     return -1;
   }
 
