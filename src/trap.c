@@ -45,7 +45,12 @@ int handle_excp(uint64 scause);
 //   printf("trapinit\n");
 //   #endif
 // }
-
+static void print_epc_info(){
+  struct proc* p = myproc();
+  for(int i = 0;i < 5;i++){
+    printf("epc %d : %p\n",i,p->epc_nums[(p->epc_num - 1 + i) % 5]);
+  }
+}
 // set up to take exceptions and traps while in the kernel.
 void
 trapinithart(void)
@@ -267,12 +272,7 @@ int devintr(void) {
 	}
 	else { return 0;}
 }
-static void print_epc_info(){
-  struct proc* p = myproc();
-  for(int i = 0;i < 5;i++){
-    printf("epc %d : %p\n",i,p->epc_nums[(p->epc_num - 1 + i) % 5]);
-  }
-}
+
 // be noticed that syscall is not handled here 
 int handle_excp(uint64 scause) {
 	// later implementation may handle more cases, such as lazy allocation, mmap, etc.
