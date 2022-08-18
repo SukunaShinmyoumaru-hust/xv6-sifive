@@ -78,7 +78,7 @@ bindalloc(struct socket* sk){
   for(int i = 0;i<PORTNUM;i++){
     acquire(&ports[i].lk);
     if(!ports[i].sk){
-      sk->bind_port = ports[i];
+      sk->bind_port = ports+i;
       ports[i].sk = sk;
       release(&ports[i].lk);
       return 0;
@@ -93,7 +93,7 @@ connect(struct socket* sk, sockaddr* addr)
 {
   struct netport* myport = sk->bind_port;
   struct netport* port = findport(addr);
-  if(!port||myport){
+  if(!port||!myport){
     return -1;
   }
   acquire(&port->lk);
@@ -102,6 +102,7 @@ connect(struct socket* sk, sockaddr* addr)
     return -1;
   }
   acquire(&myport->lk);
+  sk->conn_port = port; 
   myport->conn = port;
   port->conn = myport;
   release(&myport->lk);
@@ -227,11 +228,13 @@ msgcopy(struct msg* msg){
 }
 
 void
-sendmsg(struct socket sock, sockaddr* addr, struct msg* msg)
+sendmsg(struct socket* sock, sockaddr* addr, struct msg* msg)
 {
-  print_sockaddr(addr);
+  if(addr)print_sockaddr(addr);
   struct netport* port;
-  if(sock->type==SK_CONNECT)port = sock->conn_port;
+  if(sock->sk_type==SK_CONNECT){
+    port = sock->conn_port;
+  }
   else port = findport(addr);
   if(!port)return;
   struct msg* cp = msgcopy(msg);
@@ -277,9 +280,9 @@ print_sockaddr(sockaddr* addr){
 void
 print_msg(struct msg* msg)
 {
-  printf("-----msg len:%d S-----\n");
+  printf("-----msg portid:%d len:%d S-----\n",msg->port->portid,msg->len);
   printf("%s\n",msg->data);
-  printf("-----msg len:%d E-----\n");
+  printf("-----msg portid:%d len:%d E-----\n",msg->port->portid,msg->len);
 }
 
 void

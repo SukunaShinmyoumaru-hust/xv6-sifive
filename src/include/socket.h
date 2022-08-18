@@ -181,8 +181,8 @@ struct socket{
     int protocol;
     enum {SK_NONE, SK_BIND, SK_CONNECT} sk_type;
     char temp[MAX_LENGTH_OF_SOCKET];
-    struct port* bind_port;
-    struct port* conn_port;
+    struct netport* bind_port;
+    struct netport* conn_port;
     struct spinlock lk;
 };
 
@@ -222,7 +222,7 @@ void socketkstat(struct socket* sk, struct kstat* kst);
 struct msg* createmsg(char* data, uint64 len);
 struct msg* msgcopy(struct msg* msg);
 void destroymsg(struct msg* msg);
-void sendmsgto(sockaddr* addr, struct msg* msg);
+void sendmsg(struct socket* sock, sockaddr* addr, struct msg* msg);
 struct msg* recvmsgfrom(sockaddr* addr);
 void slock(struct socket* sk);
 void sunlock(struct socket* sk);

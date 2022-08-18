@@ -85,7 +85,7 @@ sys_bind(void)
     goto bad;
   }
   print_sockaddr(&addr);
-  if(bindaddr(sk)<0){
+  if(bindaddr(sk, &addr)<0){
     printf("[sys bind]bind bad\n");
     goto bad;
   }
@@ -121,11 +121,11 @@ sys_connect(void){
     return -1;
   }
   printf("conncet sockfd:%d addrlen:%p\n", sockfd, addrlen);
-  if(argstruct(1, addr, addrlen)==0){
+  if(argstruct(1, &addr, addrlen)==0){
     goto bad;
   }
   print_sockaddr(&addr);
-  if(connect(sk,addr)<0){
+  if(connect(sk,&addr)<0){
     goto bad;
   }
   sunlock(sk);
@@ -223,9 +223,9 @@ sys_recvfrom(void)
     if(argstruct(4, addr, addrlen)==0){
       return -1;
     }
+    print_sockaddr(addr);
   }
-  printf(" recvfrom sockfd:%d addrlen:%p\n", sockfd, addrlen);
-  print_sockaddr(addr);
+  printf(" recvfrom sockfd:%d\n", sockfd);
   sunlock(sk);
   if(addrfree)kfree(addr);
   printf("recvfrom leave\n");
