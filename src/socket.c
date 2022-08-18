@@ -55,15 +55,16 @@ IPinit(struct netIP* ip,void* addr,int type)
 }
 
 int
-bindaddr(struct socket* sk){
+bindaddr(struct socket* sk, sockaddr* addr){
     int ret = -1;
-    struct netport* port = findport(&sk->bind_addr);
+    struct netport* port = findport(addr);
     if(!port){
       __debug_warn("[bind addr] addr not found\n");
       return ret;
     }
     acquire(&port->lk);
     if(!port->sk){
+      sk->bind_port = port;
       port->sk = sk;
       ret = 0;
     }
@@ -77,13 +78,8 @@ bindalloc(struct socket* sk){
   for(int i = 0;i<PORTNUM;i++){
     acquire(&ports[i].lk);
     if(!ports[i].sk){
-      sk->bind_addr = (sockaddr){
-        .addr4 = {
-          .sin_family = AF_INET,
-          .sin_addr = 0x100007f,
-          .sin_port = i
-        }
-      };
+      sk->bind_port = ports[i];
+      ports[i].sk = sk;
       release(&ports[i].lk);
       return 0;
     }
@@ -93,11 +89,11 @@ bindalloc(struct socket* sk){
 }
 
 int
-connect(struct socket* sk)
+connect(struct socket* sk, sockaddr* addr)
 {
-  struct netport* myport = findport(&sk->bind_addr);
-  struct netport* port = findport(&sk->addr);
-  if(!port){
+  struct netport* myport = sk->bind_port;
+  struct netport* port = findport(addr);
+  if(!port||myport){
     return -1;
   }
   acquire(&port->lk);
@@ -206,6 +202,7 @@ createmsg(char* data, uint64 len)
   struct msg* msg = kmalloc(sizeof(struct msg));
   msg->data = data;
   msg->len = len;
+  msg->port = NULL;
   list_init(&msg->list);
   return msg;
 }
@@ -223,18 +220,22 @@ msgcopy(struct msg* msg){
   struct msg* cp = kmalloc(sizeof(struct msg));
   cp->data = kmalloc(msg->len);
   cp->len = msg->len;
+  cp->port = NULL;
   memcpy(cp->data,msg->data,msg->len);
   list_init(&cp->list);
   return cp;
 }
 
 void
-sendmsgto(sockaddr* addr, struct msg* msg)
+sendmsg(struct socket sock, sockaddr* addr, struct msg* msg)
 {
   print_sockaddr(addr);
-  struct msg* cp = msgcopy(msg);
-  struct netport* port = findport(addr);
+  struct netport* port;
+  if(sock->type==SK_CONNECT)port = sock->conn_port;
+  else port = findport(addr);
   if(!port)return;
+  struct msg* cp = msgcopy(msg);
+  cp->port = sock->bind_port;
   port_recv_msg(port, cp);
 }
 

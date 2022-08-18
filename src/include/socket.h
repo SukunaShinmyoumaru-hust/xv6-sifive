@@ -147,11 +147,8 @@ typedef union{
   struct sockaddr_in6 addr6;
 }sockaddr;
 
-struct msg{
-    char* data;
-    uint64 len;
-    struct list list;
-};
+
+
 
 struct netport {
   int portid;
@@ -160,6 +157,13 @@ struct netport {
   struct socket* sk;
   struct list msg;
   struct spinlock lk;
+};
+
+struct msg{
+    char* data;
+    struct netport* port;
+    uint64 len;
+    struct list list;
 };
 
 #define PORTNUM 0x10000
@@ -177,8 +181,8 @@ struct socket{
     int protocol;
     enum {SK_NONE, SK_BIND, SK_CONNECT} sk_type;
     char temp[MAX_LENGTH_OF_SOCKET];
-    sockaddr bind_addr;
-    sockaddr addr;
+    struct port* bind_port;
+    struct port* conn_port;
     struct spinlock lk;
 };
 
@@ -208,9 +212,9 @@ void portinit(struct netport* port,uint64 portid);
 void IPinit(struct netIP* ip,void* addr,int type);
 struct netport* findport(sockaddr* addr);
 int bindalloc(struct socket* sk);
-int bindaddr(struct socket* sk);
+int bindaddr(struct socket* sk, sockaddr* addr);
 struct socket* socketalloc();
-int connect(struct socket* sk);
+int connect(struct socket* sk, sockaddr* addr);
 void socketclose(struct socket* sk);
 int socketread(struct socket* sk, int user, uint64 addr, int n);
 int socketwrite(struct socket* sk, int user, uint64 addr, int n);

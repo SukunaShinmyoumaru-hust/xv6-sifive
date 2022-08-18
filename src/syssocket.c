@@ -66,6 +66,7 @@ sys_bind(void)
   struct file* f;
   socklen_t addrlen;
   struct socket* sk;
+  sockaddr addr;
   if(argsock(0, &sockfd, &f, &sk)<0){
     return -1;
   }
@@ -80,10 +81,10 @@ sys_bind(void)
     goto bad;
   }
   printf("bind sockfd:%d addrlen:%p\n", sockfd, addrlen);
-  if(argstruct(1, &sk->bind_addr, addrlen)==0){
+  if(argstruct(1, &addr, addrlen)==0){
     goto bad;
   }
-  print_sockaddr(&sk->bind_addr);
+  print_sockaddr(&addr);
   if(bindaddr(sk)<0){
     printf("[sys bind]bind bad\n");
     goto bad;
@@ -101,6 +102,7 @@ sys_connect(void){
   int sockfd;
   struct file* f;
   struct socket* sk;
+  sockaddr addr;
   socklen_t addrlen;
   if(argsock(0, &sockfd, &f, &sk)<0){
     return -1;
@@ -119,11 +121,11 @@ sys_connect(void){
     return -1;
   }
   printf("conncet sockfd:%d addrlen:%p\n", sockfd, addrlen);
-  if(argstruct(1, &sk->addr, addrlen)==0){
+  if(argstruct(1, addr, addrlen)==0){
     goto bad;
   }
-  print_sockaddr(&sk->addr);
-  if(connect(sk)<0){
+  print_sockaddr(&addr);
+  if(connect(sk,addr)<0){
     goto bad;
   }
   sunlock(sk);
@@ -164,16 +166,16 @@ sys_sendto(void)
   }
   slock(sk);
   if(sk->sk_type == SK_CONNECT){
-    addr = &sk->addr;
+    sendmsg(sk, NULL, msg);
   }else{
     addr = kmalloc(sizeof(sockaddr));
     addrfree = 1;
     if(argstruct(4, addr, addrlen)==0){
       return -1;
     }
+    sendmsg(sk, addr, msg);
   }
   printf(" sendto sockfd:%d addrlen:%p\n", sockfd, addrlen);
-  sendmsgto(addr, msg);
   destroymsg(msg);
   sunlock(sk);
   if(addrfree)kfree(addr);
@@ -214,7 +216,7 @@ sys_recvfrom(void)
   }
   slock(sk);
   if(sk->sk_type == SK_CONNECT){
-    addr = &sk->addr;
+    
   }else{
     addr = kmalloc(sizeof(sockaddr));
     addrfree = 1;
