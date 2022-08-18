@@ -90,6 +90,7 @@ measure(size_t size, int parallel, int warmup, int repetitions, void* cookie)
 	fprintf(stderr, "%luk", size>>10);
 	benchmp(setup_names, benchmark_mk, cleanup_mk, 0, parallel,
 		warmup, repetitions, cookie);
+
 	if (gettime()) {
 		fprintf(stderr, "\t%lu\t%.0f", (unsigned long)get_n(), 
 			(double)(1000000. * get_n() / (double)gettime()));
@@ -110,7 +111,7 @@ measure(size_t size, int parallel, int warmup, int repetitions, void* cookie)
 
 static void
 mkfile(char *name, size_t size)
-{
+{	
 	size_t	chunk;
 	int	fd = creat(name, 0666);
 	char	buf[128*1024];		/* XXX - track sizes */

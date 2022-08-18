@@ -252,12 +252,13 @@ fileread(struct file *f, uint64 addr, int n)
   if(f->readable == 0){
     return -1;
   }
-  //printf("[file read]\n");
-  //print_f_info(f);
+  // printf("[file read]\n");
+  // print_f_info(f);
   switch (f->type) {
     case FD_PIPE:
         r = piperead(f->pipe, 1, addr, n);
         if(r<0)r = 0;
+        // printf("[file read] pid:%d piper:%p\n",myproc()->pid,r);
         break;
     case FD_DEVICE:
         if(f->major < 0 || f->major >= getdevnum() || !devsw[f->major].read)
@@ -272,11 +273,12 @@ fileread(struct file *f, uint64 addr, int n)
         if((r = eread(f->ep, 1, addr, f->off, n)) > 0)
           f->off += r;
         eunlock(f->ep);
+        // printf("[file read] pid:%d er:%p\n",myproc()->pid,r);
         break;
     default:
       panic("fileread");
   }
-  // printf("[file read] r:%p\n",r);
+  
   return r;
 }
 
@@ -288,12 +290,13 @@ filewrite(struct file *f, uint64 addr, int n)
   int ret = 0;
   //printf("major:%d off:%p\n",f->major,consolewrite-(char*)(devsw[f->major].write));
   if(!n)return 0;
-  //print_f_info(f);
-  //printf("[filewrite] addr:%p n:%p \n",addr,n);
+  // print_f_info(f);
+  // printf("[filewrite] pid:%d addr:%p n:%p \n",myproc()->pid,addr,n);
   if(f->writable == 0)
     return -1;
   if(f->type == FD_PIPE){
     ret = pipewrite(f->pipe, 1, addr, n);
+    // printf("[filewrite] pipe pid:%d addr:%p n:%p ret:%p\n",myproc()->pid,addr,n,ret);
   } else if(f->type == FD_DEVICE){
     if(f->major < 0 || f->major >= getdevnum() || !devsw[f->major].write)
       return -1;
@@ -311,6 +314,7 @@ filewrite(struct file *f, uint64 addr, int n)
       ret = -1;
     }
     eunlock(f->ep);
+    // printf("[filewrite] ewrite pid:%d addr:%p n:%p ret:%p\n",myproc()->pid,addr,n,ret);
   } else {
     panic("filewrite");
   }

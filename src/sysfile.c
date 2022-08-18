@@ -271,7 +271,7 @@ sys_write(void)
     return -1;
   }
 
-  //__debug_info("[sys_write] fd=%d, n=%p, p=%p\n", fd, n, p);
+  // __debug_info("[sys_write] pid=%d, fd=%d, n=%p, p=%p\n",myproc()->pid, fd, n, p);
   return filewrite(f, p, n);
 }
 

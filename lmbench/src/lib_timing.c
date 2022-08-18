@@ -399,12 +399,13 @@ benchmp_parent(	int response,
 
 		select(0, NULL, NULL, NULL, &delay);
 	}
-
+	
 	/* send 'start' signal */
 	write(start_signal, signals, parallel * sizeof(char));
 
 	/* Collect 'done' signals */
 	for (i = 0; i < parallel * sizeof(char); i += bytes_read) {
+		// printf("[benchmp_parent] i = %d\n", i);
 		bytes_read = 0;
 		FD_ZERO(&fds_read);
 		FD_ZERO(&fds_error);
@@ -414,6 +415,7 @@ benchmp_parent(	int response,
 		timeout.tv_sec = 1;
 		timeout.tv_usec = 0;
 		select(response+1, &fds_read, NULL, &fds_error, &timeout);
+
 		if (benchmp_sigchld_received 
 		    || benchmp_sigterm_received
 		    || FD_ISSET(response, &fds_error)) 
@@ -428,6 +430,7 @@ benchmp_parent(	int response,
 		}
 
 		bytes_read = read(response, signals, parallel * sizeof(char) - i);
+
 		if (bytes_read < 0) {
 #ifdef _DEBUG
 			fprintf(stderr, "benchmp_parent: done, bytes_read=%d, %s\n", bytes_read, strerror(errno));
@@ -636,7 +639,7 @@ benchmp_child(benchmp_f initialize,
 	} else {
 		signal(SIGCHLD, benchmp_child_sigchld);
 	}
-
+	
 	if (initialize)
 		(*initialize)(0, cookie);
 
@@ -767,6 +770,7 @@ benchmp_interval(void* _state)
 	if (state->initialize) {
 		(*state->initialize)(iterations, state->cookie);
 	}
+
 	start(0);
 	return (iterations);
 }

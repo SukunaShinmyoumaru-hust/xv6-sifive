@@ -100,6 +100,7 @@ usertrap(void)
   }
   else if((ret = handle_excp(cause)) != -2)
   {
+    // __debug_info("[usertrap] handle pagefault ret = %d\n", ret);
     if(ret == -1)
     {
       send_signal(SIGSEGV);

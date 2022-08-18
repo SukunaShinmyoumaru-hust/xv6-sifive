@@ -41,11 +41,13 @@ struct vma *vma_list_init(struct proc *p)
   
   // printf("[vma list init] stack map\n");
   // alloc STACK
-  if(alloc_vma(p, STACK, PGROUNDDOWN(USER_STACK_BOTTOM - 10 * PGSIZE), 10 * PGSIZE, PTE_R|PTE_W|PTE_U, 1, NULL) == NULL)
+  if((vma = alloc_vma(p, STACK, PGROUNDDOWN(USER_STACK_BOTTOM - 10 * PGSIZE), 10 * PGSIZE, PTE_R|PTE_W|PTE_U, 1, NULL)) == NULL)
   {
     __debug_warn("[vma_list_init] stack vma init fail\n");
     goto bad;
   }
+  // 30 pages not mapped
+  vma->addr = vma->addr - 30 * PGSIZE;
 
   // printf("[vma list init] mmap map\n");
   // alloc MMAP
@@ -478,7 +480,15 @@ err:
 
 int vma_deep_mapping(pagetable_t old, pagetable_t new, const struct vma *vma)
 {
-  uint64 start = vma->addr;
+  uint64 start;
+  if(vma->type == STACK)
+  {
+    start = vma->end - vma->sz;
+  }
+  else
+  {
+    start = vma->addr;
+  }
   pte_t *pte;
   uint64 pa;
   char *mem;
@@ -509,7 +519,7 @@ int vma_deep_mapping(pagetable_t old, pagetable_t new, const struct vma *vma)
 
     if(mappages(new, start, PGSIZE, (uint64)mem, flags) != 0)
     {
-      __debug_warn("[vma_deep_mapping] start = %p, end = %p\n", vma->addr, vma->end);
+      __debug_warn("[vma_deep_mapping] start = %p, pa = %p\n", start, mem);
       freepage(mem);
       goto err;
     }
@@ -525,7 +535,15 @@ err:
 
 int vma_shallow_mapping(pagetable_t old, pagetable_t new, const struct vma *vma)
 {
-  uint64 start = vma->addr;
+  uint64 start;
+  if(vma->type == STACK)
+  {
+    start = vma->end - vma->sz;
+  }
+  else
+  {
+    start = vma->addr;
+  }
   uint64 pa;
   pte_t *pte;
   long flags;
@@ -545,7 +563,7 @@ int vma_shallow_mapping(pagetable_t old, pagetable_t new, const struct vma *vma)
 
     if(mappages(new, start, PGSIZE, pa, flags) != 0)
     {
-      __debug_warn("[vma_shallow_mapping] start = %p, end = %p\n", vma->addr, vma->end);
+      __debug_warn("[vma_shallow_mapping] start = %p, pa = %p\n", start, pa);
       goto err;
     }
     start +=PGSIZE;

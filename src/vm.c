@@ -413,34 +413,53 @@ uvmprotect(uint64 va, uint64 len, int perm)
   return 0;
 }
 
+static int handle_stack_page_fault(struct vma *vma, uint64 stval)
+{
+  struct proc *p = myproc();
+  stval = PGROUNDDOWN(stval);
+  uint64 end = vma->end - vma->sz;
+  if(uvmalloc(p->pagetable, stval, end, PTE_R | PTE_W | PTE_U) < 0)
+  {
+    __debug_warn("[handle_stack_page_fault] stack malloc failed\n");
+    return -1;
+  }
+  vma->sz += end - stval;
+  return 0;
+}
+
 int handle_page_fault(int kind, uint64 stval)
 {
   struct proc *p = myproc();
-  struct vma *vma1 = addr_locate_vma(p->vma, stval - 1);
-  struct vma *vma2 = addr_locate_vma(p->vma, stval + 1);
-  if(vma2)
+  // __debug_info("[handle page fault] kind = %d stval = %p\n", kind, stval);
+  // print_vma_info(p);
+  
+  struct vma* vma = addr_locate_vma(p->vma, stval);
+  if(!vma)
   {
-    if(vma2->type == STACK)
-    {
-      vma1 = vma2;
-    }
-    else 
-    {
-      return -1;
-    }
-  }
-  else if(!vma1)
-  {
+    __debug_info("[handle_page_fault] vma not found\n");
     return -1;
   }
 
   pte_t *pte = walk(p->pagetable, stval, 0);
   if(pte)
   {
-    if(kind == 1 && (*pte && PTE_W))
+    if(*pte & PTE_V)
     {
-      return -1;
+      if(kind == 1 && !(*pte & PTE_W))
+      {
+        // __debug_info("[handle_page_fault] permission not match\n");
+        return -1;
+      }
     }
+  }
+
+  switch (vma->type)
+  {
+    case STACK:
+      return handle_stack_page_fault(vma, stval);
+      break;
+    default:
+      break;
   }
 
   return 0;
