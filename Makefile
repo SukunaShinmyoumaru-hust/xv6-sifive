@@ -4,7 +4,7 @@ SBI=sbi/fw_jump.elf
 LINKER=linker/kernel.ld
 
 FS?=RAM
-MAC?=SIFIVE_U
+MAC?=QEMU
 
 ifeq ($(MAC),SIFIVE_U)
 DISK:=$K/link_null.o
