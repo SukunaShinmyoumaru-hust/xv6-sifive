@@ -116,6 +116,7 @@ usertrap(void)
         printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
         trapframedump(p->trapframe);
         p->killed = SIGTERM;
+        print_epc_info();
   }
 
   if (p->killed) {
@@ -287,7 +288,6 @@ int handle_excp(uint64 scause) {
 	#endif 
 		return handle_page_fault(0, r_stval());
   default: 
-    print_epc_info();
     return -2;
 	}
 }
