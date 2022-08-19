@@ -112,14 +112,22 @@
 #define AF_XDP          PF_XDP
 #define AF_MAX          PF_MAX
 
+#define SOCK_NONBLOCK  0x800
+#define SOCK_CLOEXEC   0x80000
+
 #define MAX_LENGTH_OF_SOCKET 256
 #define ADDR_FAMILY(x) (*(sa_family_t*)(x))
 
 #include"utils/list.h"
+#include"poll.h"
+#include"file.h"
+#include"epoll.h"
 
 typedef int socklen_t;
 typedef unsigned short sa_family_t;
 
+struct file;
+struct poll_table;
 
 struct sockaddr_in {
     sa_family_t sin_family;
@@ -148,16 +156,22 @@ typedef union{
 }sockaddr;
 
 
+struct netIP;
 
-
+#define SESSIONNUM 2
 struct netport {
   int portid;
   int msgnum;
+  struct netIP* IP;
   struct netport* conn;
   struct socket* sk;
+  struct socket* sesk[SESSIONNUM];
   struct list msg;
+  struct list req;
   struct spinlock lk;
 };
+
+
 
 struct msg{
     char* data;
@@ -179,6 +193,8 @@ struct socket{
     int domain;
     int type;
     int protocol;
+    int nonblock;
+    struct wait_queue	rqueue;
     enum {SK_NONE, SK_BIND, SK_CONNECT} sk_type;
     char temp[MAX_LENGTH_OF_SOCKET];
     struct netport* bind_port;
@@ -186,46 +202,48 @@ struct socket{
     struct spinlock lk;
 };
 
-static inline void port_recv_msg(struct netport* port,struct msg* msg)
-{
-  acquire(&port->lk);
-  port->msgnum++;
-  list_add_before(&port->msg,&msg->list);
-  release(&port->lk);
-}
 
-static inline struct msg* port_pop_msg(struct netport* port)
-{
-  struct msg* msg = NULL;
-  acquire(&port->lk);
-  if(port->msgnum){
-    msg = dlist_entry(list_next(&port->msg),struct msg, list);
-    list_del(&msg->list);
-    port->msgnum--;
-  }
-  release(&port->lk);
-  return msg;
-}
-
+void slock(struct socket* sk);
+void sunlock(struct socket* sk);
+void socketwakeup(struct socket *sk);
 int netinit();
 void portinit(struct netport* port,uint64 portid);
 void IPinit(struct netIP* ip,void* addr,int type);
+void IPaddr(struct netIP* ip,sockaddr* addr);
+void portaddr(struct netport* port,sockaddr* addr);
 struct netport* findport(sockaddr* addr);
+
+void port_recv_req(struct netport* port,struct msg* msg);
+int port_has_req(struct netport* port);
+struct msg* port_pop_req(struct netport* port);
+
 int bindalloc(struct socket* sk);
 int bindaddr(struct socket* sk, sockaddr* addr);
 struct socket* socketalloc();
 int connect(struct socket* sk, sockaddr* addr);
+struct netport* getconn(struct socket* sk, struct netport* port);
 void socketclose(struct socket* sk);
 int socketread(struct socket* sk, int user, uint64 addr, int n);
 int socketwrite(struct socket* sk, int user, uint64 addr, int n);
 void socketkstat(struct socket* sk, struct kstat* kst);
+
+
 struct msg* createmsg(char* data, uint64 len);
+struct msg* nullmsg();
 struct msg* msgcopy(struct msg* msg);
 void destroymsg(struct msg* msg);
+
+
 void sendmsg(struct socket* sock, sockaddr* addr, struct msg* msg);
-struct msg* recvmsgfrom(sockaddr* addr);
-void slock(struct socket* sk);
-void sunlock(struct socket* sk);
+void sendreq(struct netport* port, struct netport* pport);
+struct msg* recvmsgfrom(struct socket* sock,sockaddr* addr);
+
+uint32 acceptepoll(struct file *fp, struct poll_table *pt);
+uint32 socketepoll(struct file *fp, struct poll_table *pt);
+uint32 socketnoepoll(struct file *fp, struct poll_table *pt);
+void socketlock(struct socket *sk, struct wait_node *wait);
+void socketunlock(struct socket *sk, struct wait_node *wait);
+void print_msg(struct msg* msg);
 void print_sockaddr(sockaddr* addr);
 void print_port_info(struct netport* port);
 #endif

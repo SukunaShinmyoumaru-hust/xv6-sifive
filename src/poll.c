@@ -11,7 +11,7 @@
 #include "include/utils/waitqueue.h"
 
 
-static void __poll_func(struct file *f, struct wait_queue *wq, struct poll_table *pt)
+void __poll_func(struct file *f, struct wait_queue *wq, struct poll_table *pt)
 {
 	struct poll_wait_queue *pwq = container_of(pt, struct poll_wait_queue, pt);
 	struct poll_wait_node *pwn;
@@ -25,7 +25,7 @@ static void __poll_func(struct file *f, struct wait_queue *wq, struct poll_table
 }
 
 
-static void poll_init(struct poll_wait_queue *pwq)
+void poll_init(struct poll_wait_queue *pwq)
 {
 	pwq->pt.func = __poll_func;
 	pwq->pt.key = 0;
@@ -34,7 +34,7 @@ static void poll_init(struct poll_wait_queue *pwq)
 }
 
 
-static void poll_end(struct poll_wait_queue *pwq)
+void poll_end(struct poll_wait_queue *pwq)
 {
 	for (int i = 0; i < pwq->index; i++) {
 		struct poll_wait_node *pwn = pwq->nodes + i;
@@ -50,7 +50,7 @@ static void poll_end(struct poll_wait_queue *pwq)
 }
 
 
-static uint32 file_poll(struct file *fp, struct poll_table *pt)
+uint32 file_poll(struct file *fp, struct poll_table *pt)
 {
 	if (!fp->poll)
 		return POLLIN|POLLOUT;
@@ -58,7 +58,7 @@ static uint32 file_poll(struct file *fp, struct poll_table *pt)
 }
 
 
-static int poll_sched_timeout(struct poll_wait_queue *pwq, uint64 expire)
+int poll_sched_timeout(struct poll_wait_queue *pwq, uint64 expire)
 {
 	struct proc *p = myproc();
 	struct proc *volatile vp = p;

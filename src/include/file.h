@@ -27,6 +27,7 @@ struct file {
   uint64 off;          // FD_ENTRY
   short major;       // FD_DEVICE
   uint32 (*poll)(struct file *, struct poll_table *);
+  uint32 (*epollv)(struct file *, struct poll_table *);
   uint64 t0_sec;
   uint64 t0_nsec;
   uint64 t1_sec;

@@ -83,6 +83,7 @@ entry	198	socket
 entry	200	bind
 entry	201	listen
 entry	203	connect
+entry	205	getpeername
 entry	206	sendto
 entry	207	recvfrom
 entry	208	setsockopt
@@ -93,6 +94,7 @@ entry	221	execve
 entry	222	mmap  
 entry	226	mprotect
 entry   227 	msync
+entry	242	accept4
 entry	260	wait4
 entry	261	prlimit64
 entry	276	renameat2

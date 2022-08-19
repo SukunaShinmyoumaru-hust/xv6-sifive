@@ -33,6 +33,7 @@
 // }
 
 static uint32 pipepoll(struct file *, struct poll_table *);
+static uint32 pipeepoll(struct file *, struct poll_table *);
 
 int
 pipealloc(struct file **pf0, struct file **pf1)
@@ -65,6 +66,7 @@ pipealloc(struct file **pf0, struct file **pf1)
 	f0->writable = 0;
 	f0->pipe = pi;
 	f0->poll = pipepoll;
+	f0->epollv = pipeepoll;
 
 	f1->type = FD_PIPE;
 	f1->readable = 0;
@@ -472,3 +474,43 @@ uint32 pipepoll(struct file *fp, struct poll_table *pt)
 
 	return mask;
 }
+
+
+static
+uint32 pipeepoll(struct file *fp, struct poll_table *pt)
+{
+	uint32 mask = 0;
+	struct pipe *pi = fp->pipe;
+/*
+	__debug_info("pipepoll", "r/w=%d/%d | ro/wo=%d/%d | rq/wq=%d/%d rn/wn=%d/%d\n",
+				fp->readable, fp->writable, pi->readopen, pi->writeopen,
+				!wait_queue_empty(&pi->rqueue), !wait_queue_empty(&pi->wqueue),
+				pi->nread, pi->nwrite);
+*/
+	if (fp->readable)
+		poll_wait(fp, &pi->rqueue, pt);
+	if (fp->writable)
+		poll_wait(fp, &pi->wqueue, pt);
+
+	if (fp->readable) {
+		if (pi->nwrite - pi->nread > 0)			// has something to read
+			mask |= EPOLLIN;
+		if (!pi->writeopen) {
+			// if (pi->nwrite - pi->nread == 0)
+			// 	mask |= POLLPRI;
+			// else
+				mask |= EPOLLHUP;
+		}
+	}
+
+	if (fp->writable) {
+		if (pi->nwrite - pi->nread < PIPESIZE(pi))	// has room to write
+			mask |= EPOLLOUT;
+		if (!pi->readopen)
+			mask |= EPOLLERR;
+	}
+
+	return mask;
+}
+
+

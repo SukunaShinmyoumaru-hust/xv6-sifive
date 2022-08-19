@@ -27,10 +27,12 @@ sys_socket(void)
   f->type = FD_SOCKET;
   sk = socketalloc();
   f->sk = sk;
+  f->readable = 1;
+  f->writable = 1;
   sk->domain = domain;
   sk->type = type;
   sk->protocol = protocol;
-  printf("create socket:%d\n",fd);
+  printf("create socket fd:%d id:%d\n",fd,sk->id);
   return fd;
 bad:
   if(!f)fileclose(f); 
@@ -55,7 +57,7 @@ sys_setsockopt(void)
   argint(2, &optname);
   argaddr(3, &optvaladdr);
   argint(4, &optlen);
-  printf("[setsockopt]sockfd:%d level:%d optname:%d optaddr:%p optlen:%p\n",sockfd, level,optname, optvaladdr,optlen);
+  //printf("[setsockopt]sockfd:%d level:%d optname:%d optaddr:%p optlen:%p\n",sockfd, level,optname, optvaladdr,optlen);
   return 0;
 }
 
@@ -89,6 +91,12 @@ sys_bind(void)
     printf("[sys bind]bind bad\n");
     goto bad;
   }
+  extern struct netIP localIP[];
+  if(sk->bind_port->IP==localIP+1){
+    f->epollv = socketnoepoll;
+  }else{
+    f->epollv = acceptepoll;
+  }
   sunlock(sk);
   return 0;
 bad:
@@ -120,7 +128,7 @@ sys_connect(void){
   if(bindalloc(sk)<0){
     return -1;
   }
-  printf("conncet sockfd:%d addrlen:%p\n", sockfd, addrlen);
+  //printf("conncet sockfd:%d addrlen:%p\n", sockfd, addrlen);
   if(argstruct(1, &addr, addrlen)==0){
     goto bad;
   }
@@ -129,6 +137,7 @@ sys_connect(void){
     goto bad;
   }
   sunlock(sk);
+  f->epollv = socketepoll;
   return 0;
 bad:
   sk->type = SK_NONE;
@@ -160,7 +169,6 @@ sys_sendto(void)
     return -1;
   }
   struct msg* msg = createmsg(buf, len);
-  printf("send buf:%s\n",buf);
   if(argint(5, &addrlen)<0){
     return -1;
   }
@@ -196,7 +204,7 @@ sys_recvfrom(void)
 {
   int sockfd;
   struct file* f;
-  sockaddr* addr;
+  sockaddr* addr = NULL;
   struct socket* sk;
   uint64 bufaddr;
   int addrfree = 0;
@@ -225,7 +233,18 @@ sys_recvfrom(void)
     }
     print_sockaddr(addr);
   }
-  printf(" recvfrom sockfd:%d\n", sockfd);
+  printf(" recvfrom sockfd:%d id:%d\n", sockfd,sk->id);
+  struct msg* msg = recvmsgfrom(sk,addr);
+  if(!msg){
+    return -1;
+  }
+  printf("receive\n");
+  print_msg(msg);
+  len = MIN(msg->len,len);
+  if(either_copyout(1,bufaddr,msg->data,len)<0){
+    return -1;
+  }
+  destroymsg(msg);
   sunlock(sk);
   if(addrfree)kfree(addr);
   printf("recvfrom leave\n");
@@ -247,5 +266,79 @@ sys_listen(void)
   }
   argint(1, &backlog);
   printf("listen sockfd:%d backlog:%d\n",sockfd,backlog);
+  return 0;
+}
+
+uint64
+sys_accept4(void)
+{
+  int sockfd;
+  int fd;
+  int flags;
+  struct file* f;
+  struct socket* sk;
+  struct socket* sessionsk = NULL;
+  struct proc* p = myproc();
+  sockaddr addr;
+  uint64 addr_addr;
+  socklen_t addrlen;
+  uint64 addrlen_addr;
+  if(argsock(0, &sockfd, &f, &sk)<0){
+    printf("[sys accept4]argsock bad\n");
+    return -1;
+  }
+  argaddr(1,&addr_addr);
+  argaddr(2,&addrlen_addr);
+  argint(3,&flags);
+  //printf("[sys accept4] accept fd:%d id:%d flags:%p\n",sockfd,sk->id,flags);
+  slock(sk);
+  //printf("addrlen = %p addr=%p\n",addrlen_addr,addr_addr);
+  struct netport* pport = getconn(sk, sk->bind_port);
+  sunlock(sk);
+  if(!pport){
+    return -EAGAIN;
+  }
+  portaddr(pport, &addr);
+  //print_sockaddr(&addr);
+  if(either_copyout(1, addr_addr, &addr,sizeof(sockaddr))<0){
+    return -1;
+  }
+  int family = ADDR_FAMILY(&addr);
+  if(family == 0x2){
+    addrlen = 0x10;
+  }else if(family == 0xa){
+    addrlen = 0x1c;
+  }
+  if(either_copyout(1, addrlen_addr, &addrlen,sizeof(socklen_t))<0){
+    return -1;
+  }
+  
+  struct file* newf = NULL;
+  if((newf=filealloc())==NULL||(fd=fdalloc(newf))<0){
+    goto bad;
+  }
+  
+  newf->type = FD_SOCKET;
+  sessionsk = socketalloc();
+  sessionsk->sk_type = SK_CONNECT;
+  sessionsk->conn_port = pport;
+  sessionsk->bind_port = sk->bind_port;
+  newf->sk = sessionsk;
+  newf->epollv = socketepoll;
+  newf->readable = 1;
+  newf->writable = 1;
+  sessionsk->nonblock =  flags&SOCK_NONBLOCK;
+  p->exec_close[fd] = flags&SOCK_CLOEXEC;
+  //printf("[accept4]create socket fd:%d id:%d\n",fd,sessionsk->id);
+  return fd;
+bad:
+  if(!newf)fileclose(newf); 
+  if(!sessionsk)socketclose(sessionsk); 
+  return -1;
+}
+
+uint64
+sys_getpeername(void)
+{
   return 0;
 }

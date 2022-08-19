@@ -9,6 +9,7 @@
 #include "include/string.h"
 #include "include/printf.h"
 #include "include/kalloc.h"
+#include "include/copy.h"
 #include "include/console.h"
 #include "include/string.h"
 #include "include/stat.h"
@@ -18,9 +19,12 @@
 
 struct netIP localIP[LOCALIPNUM];
 int skid;
+int testbit;
+
 int
 netinit()
 {
+  testbit = 0;
   skid = 0;
   uint64 local_ipv4 = 0x100007f;
   uint64 local_ipv6[2] = {0,0};
@@ -41,6 +45,7 @@ portinit(struct netport* port,uint64 portid)
   port->portid = portid;
   initlock(&port->lk, "net port");
   list_init(&port->msg);
+  list_init(&port->req);
 }
 
 void
@@ -51,6 +56,31 @@ IPinit(struct netIP* ip,void* addr,int type)
   memcpy(ip->addr, addr, cplen);
   for(int i = 0;i<PORTNUM;i++){
     portinit(ip->ports+i, i);
+    ip->ports[i].IP = ip;
+  }
+}
+
+void
+IPaddr(struct netIP* ip,sockaddr* addr)
+{
+  if(ip->type == IPv4){
+    addr->addr4.sin_family = 0x2;
+    memcpy(&addr->addr4.sin_addr, ip->addr, 4);
+  }else if(ip->type == IPv6){
+    addr->addr6.sin6_family = 0xa;
+    memcpy(addr->addr6.sin6_addr.__u6_addr.__u6_addr8, ip->addr, 16);
+  }
+}
+
+void
+portaddr(struct netport* port,sockaddr* addr)
+{
+  IPaddr(port->IP,addr);
+  int family = ADDR_FAMILY(addr);
+  if(family == 0x2){
+    addr->addr4.sin_port = port->portid;
+  }else if(family == 0xa){
+    addr->addr6.sin6_port = port->portid;
   }
 }
 
@@ -96,17 +126,12 @@ connect(struct socket* sk, sockaddr* addr)
   if(!port||!myport){
     return -1;
   }
-  acquire(&port->lk);
-  if(!port->sk){
-    release(&port->lk);
-    return -1;
-  }
   acquire(&myport->lk);
   sk->conn_port = port; 
   myport->conn = port;
-  port->conn = myport;
+  sendreq(myport,port);
   release(&myport->lk);
-  release(&port->lk);
+  sleep(port,&sk->lk);
   return 0;
 }
 
@@ -149,6 +174,121 @@ findport(sockaddr* addr)
   return ip->ports+portid;
 }
 
+static inline void port_recv_msg(struct netport* port,struct msg* msg)
+{
+  acquire(&port->lk);
+  port->msgnum++;
+  list_add_before(&port->msg,&msg->list);
+  struct socket* sk = NULL;
+  for(int i = 0;i<PORTNUM;i++){
+     if(!port->sesk[i])continue;
+     if(port->sesk[i]->conn_port==msg->port){
+       sk = port->sesk[i];
+       break;
+     }
+  }
+  if(sk){
+    slock(sk);
+    socketwakeup(sk);
+    sunlock(sk);
+  }
+  release(&port->lk);
+}
+
+static int port_has_msg(struct netport* port,struct netport* pport)
+{
+  int ret = 0;
+  acquire(&port->lk);
+  struct list* head = &port->msg;
+  struct list* it = head;
+  while(it!=head){
+    struct msg* msg = dlist_entry(it,struct msg,list);
+    if(msg->port == pport){
+      ret = 1;
+      break;
+    }
+    it = list_next(it);
+  }
+  release(&port->lk);
+  return ret;
+}
+
+struct msg* port_pop_msg(struct netport* port,struct netport* pport)
+{
+  struct msg* msg = NULL;
+  acquire(&port->lk);
+  struct list* head = &port->msg;
+  struct list* it = head;
+  while(it!=head){
+    msg = dlist_entry(it,struct msg,list);
+    if(msg->port == pport){
+      break;
+    }
+    it = list_next(it);
+  }
+  release(&port->lk);
+  return msg;
+}
+
+void port_recv_req(struct netport* port,struct msg* msg)
+{
+  acquire(&port->lk);
+  list_add_before(&port->req,&msg->list);
+  struct socket* sk = port->sk;
+  if(sk){
+    slock(sk);
+    socketwakeup(sk);
+    sunlock(sk);
+  }
+  release(&port->lk);
+}
+
+int port_has_req(struct netport* port)
+{
+  int ret;
+  acquire(&port->lk);
+  ret = !list_empty(&port->req);
+  release(&port->lk);
+  return ret;
+}
+
+struct msg* port_pop_req(struct netport* port)
+{
+  struct msg* msg = NULL;
+  acquire(&port->lk);
+  if(!list_empty(&port->req)){
+    msg = dlist_entry(list_next(&port->req),struct msg, list);
+    list_del(&msg->list);
+    port->msgnum--;
+  }
+  release(&port->lk);
+  return msg;
+}
+
+struct netport*
+getconn(struct socket* sk, struct netport* port)
+{
+  int nonblock = sk->nonblock;
+  if(!port)return NULL;
+  struct msg* msg = NULL;
+  struct wait_node node;
+  node.chan = &msg;
+  socketlock(sk,&node);
+  while(1){
+    msg = port_pop_req(port);
+    if(msg||nonblock)break;
+    else{
+      sleep(&msg,&sk->lk);
+    }
+  }
+  socketunlock(sk,&node);
+  struct netport* ret = msg?msg->port:NULL;
+  if(msg)destroymsg(msg);
+  wakeup(port);
+  return ret;
+}
+
+
 struct socket*
 socketalloc()
 {
@@ -156,6 +296,7 @@ socketalloc()
   memset(sk,0,sizeof(struct socket));
   sk->id = ++skid;
   initlock(&sk->lk,"socket");
+  wait_queue_init(&sk->rqueue, "socket read queue");
   return sk;
 }
 
@@ -165,6 +306,17 @@ socketclose(struct socket* sk)
   //acquire(&sk->lk);
   //release(&sk->lk);
   kfree(sk);
+}
+
+void socketwakeup(struct socket *sk)
+{
+	struct wait_queue *queue= &sk->rqueue;
+	acquire(&queue->lock);
+	if (!wait_queue_empty(queue)) {
+		struct wait_node *wno = wait_queue_next(queue);
+		wakeup(wno->chan);
+	}
+	release(&queue->lock);
 }
 
 
@@ -183,6 +335,40 @@ socketkstat(struct socket* sk, struct kstat* kst)
   
 }
 
+void socketlock(struct socket *sk, struct wait_node *wait)
+{
+	struct wait_queue *q = &sk->rqueue;
+
+	acquire(&q->lock);
+	wait_queue_add(q, wait);	// stay in line
+
+	// whether we are the first arrival
+	while (!wait_queue_is_first(q, wait)) {
+		sleep(wait->chan, &q->lock);
+	}
+	release(&q->lock);
+}
+
+void socketunlock(struct socket *sk, struct wait_node *wait)
+{
+	struct wait_queue *q = &sk->rqueue;
+
+	acquire(&q->lock);
+	// if (wait_queue_empty(q))
+	// 	panic("pipeunlock: empty queue");
+	// wait_queue_empty(q);
+
+	// if (wait != wait_queue_next(q))
+	// 	panic("pipeunlock: not next");
+	
+	wait_queue_del(wait);			// walk out the queue
+	if (!wait_queue_empty(q)) {		// wake up the next one
+		wait = wait_queue_next(q);
+		wakeup(wait->chan);
+	}
+	release(&q->lock);
+}
+
 int
 socketread(struct socket* sk, int user, uint64 addr, int n)
 {
@@ -194,13 +380,25 @@ int
 socketwrite(struct socket* sk, int user, uint64 addr, int n)
 {
   __debug_warn("socket write addr:%p n:%p\n", addr, n);
-  return 0;
+  char* data = kmalloc(n);
+  if(!data)return 0;
+  if(either_copyin(user,data,addr,n)<0){
+    return 0;
+  }
+  struct msg* msg =createmsg(data,n);
+  if(!msg)return 0;
+  sendmsg(sk,NULL,msg);
+  destroymsg(msg);
+  print_port_info(localIP->ports+0);
+  printf("[socket write]ret %d\n",n);
+  return n;
 }
 
 struct msg*
 createmsg(char* data, uint64 len)
 {
   struct msg* msg = kmalloc(sizeof(struct msg));
+  if(!msg)return NULL;
   msg->data = data;
   msg->len = len;
   msg->port = NULL;
@@ -208,10 +406,18 @@ createmsg(char* data, uint64 len)
   return msg;
 }
 
+struct msg*
+nullmsg()
+{
+  struct msg* msg = kmalloc(sizeof(struct msg));
+  msg->data = NULL;
+  return msg;
+}
+
 void
 destroymsg(struct msg* msg)
 {
-  kfree(msg->data);
+  if(msg->data)kfree(msg->data);
   kfree(msg);
 }
 
@@ -230,22 +436,91 @@ msgcopy(struct msg* msg){
 void
 sendmsg(struct socket* sock, sockaddr* addr, struct msg* msg)
 {
-  if(addr)print_sockaddr(addr);
   struct netport* port;
   if(sock->sk_type==SK_CONNECT){
     port = sock->conn_port;
   }
   else port = findport(addr);
-  if(!port)return;
+  if(!port){
+    __debug_warn("send fail\n");
+    return;
+  }
   struct msg* cp = msgcopy(msg);
   cp->port = sock->bind_port;
+  printf("[sendmsg]");
+  print_port_info(port);
+  testbit = 1;
   port_recv_msg(port, cp);
 }
 
-struct msg*
-recvmsgfrom(sockaddr* addr)
+void
+sendreq(struct netport* port, struct netport* pport)
 {
-  return NULL;
+  struct msg* msg = nullmsg();
+  msg->port = port;
+  port_recv_req(pport,msg);
+}
+
+struct msg*
+recvmsgfrom(struct socket* sk,sockaddr* addr)
+{
+  struct netport* port;
+  if(sk->sk_type==SK_CONNECT){
+    port = sk->bind_port;
+  }
+  else port = findport(addr);
+  if(!port){
+    __debug_warn("recv fail\n");
+    return NULL;
+  }
+  struct msg* msg =NULL;
+  struct wait_node node;
+  node.chan = &msg;
+  socketlock(sk,&node);
+  while(1){
+    msg = port_pop_msg(port,sk->conn_port);
+    if(msg)break;
+    else{
+      sleep(&msg,&sk->lk);
+    }
+  }
+  socketunlock(sk,&node);
+  
+  return msg;
+}
+
+uint32
+acceptepoll(struct file *fp, struct poll_table *pt)
+{
+	uint32 mask = 0;
+	struct socket* sk = fp->sk;
+	if(!sk)return 0;
+	if (fp->readable)
+		poll_wait(fp, &sk->rqueue, pt);
+	if(sk->bind_port&&port_has_req(sk->bind_port))mask|=EPOLLIN;
+	mask|=EPOLLOUT;
+	return mask;
+}
+
+
+uint32
+socketepoll(struct file *fp, struct poll_table *pt)
+{
+	uint32 mask = 0;
+	struct socket* sk = fp->sk;
+	if(!sk)return 0;
+	if (fp->readable)
+		poll_wait(fp, &sk->rqueue, pt);
+	if(sk->bind_port&&port_has_msg(sk->bind_port,sk->conn_port))mask|=EPOLLIN;
+	mask|=EPOLLOUT;
+	return mask;
+}
+
+
+uint32
+socketnoepoll(struct file *fp, struct poll_table *pt)
+{
+	return 0;
 }
 
 void

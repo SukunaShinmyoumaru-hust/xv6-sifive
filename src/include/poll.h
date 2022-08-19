@@ -83,5 +83,9 @@ int ppoll(struct pollfd *pfds, int nfds, struct timespec *timeout, __sigset_t *s
 int pselect(int nfds, struct fdset *readfds,
 			struct fdset *writefds, struct fdset *exceptfds,
 			struct timespec *timeout, __sigset_t *sigmask);
+void __poll_func(struct file *f, struct wait_queue *wq, struct poll_table *pt);
+void poll_init(struct poll_wait_queue *pwq);
+void poll_end(struct poll_wait_queue *pwq);
+int poll_sched_timeout(struct poll_wait_queue *pwq, uint64 expire);
 
 #endif

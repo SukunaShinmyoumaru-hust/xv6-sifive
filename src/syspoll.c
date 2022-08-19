@@ -138,9 +138,9 @@ sys_epoll_ctl(void)
   int epfd;
   int op;
   int fd;
+  int ret = -1;
   struct epoll_event event;
   struct epoll* epoll;
-  struct proc* p = myproc();
   if(argepoll(0, &epfd,0,&epoll)<0){
     return -1;
   }
@@ -150,13 +150,13 @@ sys_epoll_ctl(void)
     return -1;
   }
   printf("[epoll ctl]op:%d fd:%d event->mask:%p\n",op,fd,event.events);
-  print_f_info(p->ofile[fd]);
+  //print_f_info(p->ofile[fd]);
   switch(op){
-    case EPOLL_CTL_ADD:epolladd(epoll,fd,&event);break;
-    case EPOLL_CTL_DEL:epolldel(epoll,fd);break;
-    case EPOLL_CTL_MOD:break;
+    case EPOLL_CTL_ADD:ret = epolladd(epoll,fd,&event);break;
+    case EPOLL_CTL_DEL:ret = epolldel(epoll,fd);break;
+    case EPOLL_CTL_MOD:ret = -1;break;
   }
-  return 0;
+  return ret;
 }
 
 uint64
@@ -170,7 +170,25 @@ sys_epoll_pwait(void)
     firstwait = 0;
     readyq_push(clientproc);
   }
-  return 2;
+  int epfd;
+  int maxevents;
+  int timeout;
+  uint64 events_addr;
+  uint64 sigmaskaddr;
+  __sigset_t sigmask;
+  struct epoll* epoll;
+  if(argepoll(0, &epfd,0,&epoll)<0){
+    return -1;
+  }
+  argaddr(1,&events_addr);
+  argint(2,&maxevents);
+  argint(3,&timeout);
+  sigmaskaddr = argstruct(4,&sigmask,sizeof(__sigset_t));
+  printf("epfd:%d maxevents:%d timeout:%d sigmaskaddr:%p\n",epfd,maxevents,timeout,sigmaskaddr);
+  int ret = epoll_pwait(epoll, events_addr, maxevents 
+  			, sigmaskaddr?&sigmask:NULL
+  			, timeout);
+  return ret;
 }
 
 uint64

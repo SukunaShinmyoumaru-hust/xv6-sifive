@@ -54,8 +54,8 @@ struct epoll{
 };
 
 struct epoll* epollalloc();
-void epolladd(struct epoll* epoll, int fd,struct epoll_event* events);
-void epolldel(struct epoll* epoll, int fd);
+int epolladd(struct epoll* epoll, int fd,struct epoll_event* events);
+int epolldel(struct epoll* epoll, int fd);
 void epollclose(struct epoll* epoll);
-
+int epoll_pwait(struct epoll* epoll,uint64 events_addr,int maxevents,__sigset_t* sigmask, int timeout);
 #endif
