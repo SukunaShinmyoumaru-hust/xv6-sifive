@@ -35,6 +35,7 @@ entry	29	ioctl
 entry   34	mkdirat
 entry	35	unlinkat
 entry   48	faccessat
+entry   49	chdir
 entry	56	openat
 entry	57	close
 entry   59	pipe2
@@ -94,6 +95,7 @@ entry	221	execve
 entry	222	mmap  
 entry	226	mprotect
 entry   227 	msync
+entry	233	madvise
 entry	242	accept4
 entry	260	wait4
 entry	261	prlimit64

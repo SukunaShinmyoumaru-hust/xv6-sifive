@@ -149,7 +149,7 @@ sys_epoll_ctl(void)
   if(argstruct(3, &event, sizeof(struct epoll_event))==NULL){
     return -1;
   }
-  printf("[epoll ctl]op:%d fd:%d event->mask:%p\n",op,fd,event.events);
+  //printf("[epoll ctl]op:%d fd:%d event->mask:%p\n",op,fd,event.events);
   //print_f_info(p->ofile[fd]);
   switch(op){
     case EPOLL_CTL_ADD:ret = epolladd(epoll,fd,&event);break;
@@ -184,7 +184,7 @@ sys_epoll_pwait(void)
   argint(2,&maxevents);
   argint(3,&timeout);
   sigmaskaddr = argstruct(4,&sigmask,sizeof(__sigset_t));
-  printf("epfd:%d maxevents:%d timeout:%d sigmaskaddr:%p\n",epfd,maxevents,timeout,sigmaskaddr);
+  //printf("epfd:%d maxevents:%d timeout:%d sigmaskaddr:%p\n",epfd,maxevents,timeout,sigmaskaddr);
   int ret = epoll_pwait(epoll, events_addr, maxevents 
   			, sigmaskaddr?&sigmask:NULL
   			, timeout);

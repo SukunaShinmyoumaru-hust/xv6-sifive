@@ -287,7 +287,7 @@ fileread(struct file *f, uint64 addr, int n)
         break;
     case FD_SOCKET:
     	acquire(&f->sk->lk);
-    	r = socketwrite(f->sk, 1, addr, n);
+    	r = socketread(f->sk, 1, addr, n);
     	release(&f->sk->lk);
     	break;
     default:

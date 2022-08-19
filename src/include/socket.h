@@ -212,6 +212,7 @@ void IPinit(struct netIP* ip,void* addr,int type);
 void IPaddr(struct netIP* ip,sockaddr* addr);
 void portaddr(struct netport* port,sockaddr* addr);
 struct netport* findport(sockaddr* addr);
+void seskport(struct netport* port,struct socket* sk);
 
 void port_recv_req(struct netport* port,struct msg* msg);
 int port_has_req(struct netport* port);
@@ -230,13 +231,14 @@ void socketkstat(struct socket* sk, struct kstat* kst);
 
 struct msg* createmsg(char* data, uint64 len);
 struct msg* nullmsg();
+int isnullmsg(struct msg* msg);
 struct msg* msgcopy(struct msg* msg);
 void destroymsg(struct msg* msg);
 
 
 void sendmsg(struct socket* sock, sockaddr* addr, struct msg* msg);
 void sendreq(struct netport* port, struct netport* pport);
-struct msg* recvmsgfrom(struct socket* sock,sockaddr* addr);
+struct msg* recvmsgfrom(struct socket* sock,sockaddr* addr,int nonblock);
 
 uint32 acceptepoll(struct file *fp, struct poll_table *pt);
 uint32 socketepoll(struct file *fp, struct poll_table *pt);

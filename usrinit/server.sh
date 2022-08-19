@@ -1,3 +1,3 @@
 #!/bin/bash
 
-./redis-server --protected-mode no
+./redis-server redis.conf

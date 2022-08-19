@@ -32,7 +32,7 @@ sys_socket(void)
   sk->domain = domain;
   sk->type = type;
   sk->protocol = protocol;
-  printf("create socket fd:%d id:%d\n",fd,sk->id);
+  //printf("create socket fd:%d id:%d\n",fd,sk->id);
   return fd;
 bad:
   if(!f)fileclose(f); 
@@ -82,11 +82,11 @@ sys_bind(void)
   if(argint(2, &addrlen)<0){
     goto bad;
   }
-  printf("bind sockfd:%d addrlen:%p\n", sockfd, addrlen);
+  //printf("bind sockfd:%d addrlen:%p\n", sockfd, addrlen);
   if(argstruct(1, &addr, addrlen)==0){
     goto bad;
   }
-  print_sockaddr(&addr);
+  //print_sockaddr(&addr);
   if(bindaddr(sk, &addr)<0){
     printf("[sys bind]bind bad\n");
     goto bad;
@@ -128,11 +128,12 @@ sys_connect(void){
   if(bindalloc(sk)<0){
     return -1;
   }
+  seskport(sk->bind_port, sk);
   //printf("conncet sockfd:%d addrlen:%p\n", sockfd, addrlen);
   if(argstruct(1, &addr, addrlen)==0){
     goto bad;
   }
-  print_sockaddr(&addr);
+  //print_sockaddr(&addr);
   if(connect(sk,&addr)<0){
     goto bad;
   }
@@ -183,10 +184,14 @@ sys_sendto(void)
     }
     sendmsg(sk, addr, msg);
   }
-  printf(" sendto sockfd:%d addrlen:%p\n", sockfd, addrlen);
+  //printf(" sendto sockfd:%d addrlen:%p\n", sockfd, addrlen);
+  destroymsg(msg);
+  msg = nullmsg();
+  sendmsg(sk,NULL,msg);
   destroymsg(msg);
   sunlock(sk);
   if(addrfree)kfree(addr);
+  /*
   sockaddr tmpaddr = (sockaddr){
     .addr4 = (struct sockaddr_in){
       .sin_family = AF_INET,
@@ -196,6 +201,7 @@ sys_sendto(void)
   };
   print_port_info(findport(&tmpaddr));
   printf("sendto leave\n");
+  */
   return len;
 }
 
@@ -218,7 +224,7 @@ sys_recvfrom(void)
   argaddr(1, &bufaddr);
   argaddr(2, &len);
   argint(3, &flags);
-  printf("recvfrom bufaddr:%p\n",bufaddr);
+  //printf("recvfrom bufaddr:%p\n",bufaddr);
   if(argint(5, &addrlen)<0){
     return -1;
   }
@@ -231,26 +237,12 @@ sys_recvfrom(void)
     if(argstruct(4, addr, addrlen)==0){
       return -1;
     }
-    print_sockaddr(addr);
+    //print_sockaddr(addr);
   }
-  printf(" recvfrom sockfd:%d id:%d\n", sockfd,sk->id);
-  struct msg* msg = recvmsgfrom(sk,addr);
-  if(!msg){
-    return -1;
-  }
-  printf("receive\n");
-  print_msg(msg);
-  len = MIN(msg->len,len);
-  if(either_copyout(1,bufaddr,msg->data,len)<0){
-    return -1;
-  }
-  destroymsg(msg);
+  //printf(" recvfrom sockfd:%d id:%d\n", sockfd,sk->id);
+  len = socketread(sk,1,bufaddr,len);
   sunlock(sk);
   if(addrfree)kfree(addr);
-  printf("recvfrom leave\n");
-  for(;;){
-  
-  }
   return len;
 }
 
@@ -265,7 +257,7 @@ sys_listen(void)
     return -1;
   }
   argint(1, &backlog);
-  printf("listen sockfd:%d backlog:%d\n",sockfd,backlog);
+  //printf("listen sockfd:%d backlog:%d\n",sockfd,backlog);
   return 0;
 }
 
@@ -323,6 +315,7 @@ sys_accept4(void)
   sessionsk->sk_type = SK_CONNECT;
   sessionsk->conn_port = pport;
   sessionsk->bind_port = sk->bind_port;
+  seskport(sk->bind_port, sessionsk);
   newf->sk = sessionsk;
   newf->epollv = socketepoll;
   newf->readable = 1;

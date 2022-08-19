@@ -67,6 +67,7 @@ int poll_sched_timeout(struct poll_wait_queue *pwq, uint64 expire)
 	acquire(&p->lock);	// Hold this for sleep().
 	
 	p->sleep_expire = expire;
+	//printf("pid %d sleep on %p\n",p->pid,pwq);
 	sleep(pwq, &p->lock);
 	
 	// Check whether we are waken up by timeout.

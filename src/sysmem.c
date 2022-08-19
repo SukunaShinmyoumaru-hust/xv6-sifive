@@ -88,6 +88,12 @@ sys_mprotect(void)
 }
 
 uint64
+sys_madvise(void)
+{
+  return 0;
+}
+
+uint64
 sys_msync(void)
 {
 	uint64 addr;

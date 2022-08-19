@@ -272,7 +272,9 @@ sys_write(void)
   }
 
   //__debug_info("[sys_write] fd=%d, n=%p, p=%p\n", fd, n, p);
-  return filewrite(f, p, n);
+  uint64 ret = filewrite(f, p, n);
+  if(f->type==FD_SOCKET)filewrite(f,0,1);
+  return ret;
 }
 
 
@@ -337,6 +339,9 @@ sys_writev(void){
     if(!v.iov_len)continue;
     totlen += filewrite(f,(uint64)v.iov_base,v.iov_len);
     //printf("[writev]next\n");
+  }
+  if(f->type == FD_SOCKET){
+    filewrite(f,0,1);
   }
   return totlen;
 }
@@ -435,6 +440,28 @@ sys_getcwd(void)
   if (either_copyout(1, addr, s, strlen(s) + 1) < 0)
     return -1;
   return addr;
+}
+
+uint64
+sys_chdir(void)
+{
+  char path[FAT32_MAX_PATH];
+  struct dirent *ep;
+  struct proc *p = myproc();
+  
+  if(argstr(0, path, FAT32_MAX_PATH) < 0 || (ep = ename(NULL,path,0)) == NULL){
+    return -1;
+  }
+  elock(ep);
+  if(!(ep->attribute & ATTR_DIRECTORY)){
+    eunlock(ep);
+    eput(ep);
+    return -1;
+  }
+  eunlock(ep);
+  eput(p->cwd);
+  p->cwd = ep;
+  return 0;
 }
 
 
