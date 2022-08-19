@@ -481,6 +481,7 @@ recvmsgfrom(struct socket* sk,sockaddr* addr)
     msg = port_pop_msg(port,sk->conn_port);
     if(msg)break;
     else{
+      printf("sleep on %p\n",&msg);
       sleep(&msg,&sk->lk);
     }
   }
