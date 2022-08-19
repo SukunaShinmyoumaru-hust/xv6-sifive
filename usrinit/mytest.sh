@@ -33,7 +33,7 @@ lmbench_all lmdd label="File /var/tmp/XXX write bandwidth:" of=/var/tmp/XXX move
 
 busybox echo Bandwidth measurements
 lmbench_all bw_pipe -P 1
-lmbench_all bw_file_rd -P 1 512k io_only /var/tmp/XXX
+# lmbench_all bw_file_rd -P 1 512k io_only /var/tmp/XXX
 lmbench_all bw_file_rd -P 1 512k open2close /var/tmp/XXX
 lmbench_all bw_mmap_rd -P 1 512k mmap_only /var/tmp/XXX
 lmbench_all bw_mmap_rd -P 1 512k open2close /var/tmp/XXX
