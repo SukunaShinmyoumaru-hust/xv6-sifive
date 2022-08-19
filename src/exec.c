@@ -193,6 +193,12 @@ void zerocheck(pagetable_t pagetable, uint64 va,int len){
   
 }
   
+static void
+print_sp(uint64 sp)
+{
+  if(sp%16)
+    __debug_info("[exec] sp = %p sp%16=%d\n",sp, sp%16);
+}
 
 int
 exec(char *path, char **argv, char **env)
@@ -210,13 +216,13 @@ exec(char *path, char **argv, char **env)
   struct dirent *ep;
   np->trapframe = allocpage();
   memcpy(np->trapframe,p->trapframe,sizeof(struct trapframe));
- /*
+ 
+  /*
   __debug_warn("[exec] exec %s\n",path);
   for(int aaa = 0;argv[aaa];aaa++){
     __debug_warn("[exec] exec argv[%d] %s\n",aaa,argv[aaa]);
   }
   */
-  
   /*
   if(strncmp(path,"/bin/sh",10)==0){
     strncpy(path,"/busybox",10);
@@ -277,6 +283,7 @@ reload:
   if((sp = ustackpushstr(np->pagetable,environ,"LD_LIBRARY_PATH=/",sp,stackbase))==-1){
       goto bad;
   }
+  
   if(entry!=elf.entry){
     //("elf.entry:%p\n",elf.entry);
     //printf("progentry:%p\n",progentry);
@@ -292,8 +299,7 @@ reload:
     __debug_warn("[exec] random copy bad\n");
     goto bad;
   }
-
-
+  
   //auxalloc(aux,AT_HWCAP, 0x112d);
   auxalloc(aux,AT_PAGESZ,PGSIZE);
   auxalloc(aux,AT_PHDR, phdr.vaddr);
@@ -335,6 +341,7 @@ reload:
   }
   //printf("[exec]push end\n");
   if((environ[0]+ustack[0]+1)%2){sp -= 8;}//16 aligned
+  
   //load aux
   if((sp = loadaux(np->pagetable,sp,stackbase,aux))<0){
     __debug_warn("[exec]pass aux too many\n");
@@ -359,6 +366,7 @@ reload:
   //printf("[exec]argc:%d\n",argc);
   // push the array of argv[] pointers.
   sp -= (argc+2) * sizeof(uint64);
+  
   if(sp < stackbase){
     __debug_warn("[exec]ustack address vec too long\n");
     goto bad;
@@ -396,6 +404,8 @@ reload:
     }
   }
   w_satp(MAKE_SATP(p->pagetable));
+  
+  print_sp(sp);
   
   sfence_vma();
   //printf("[exec]argc:%d a0:%p\n",argc,p->trapframe->a0);
