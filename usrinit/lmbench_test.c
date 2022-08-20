@@ -36,7 +36,6 @@ static longtest lmbench[] = {
 	{ 0 , {"busybox"  ,  "cp"  ,  "hello"  ,  "/tmp"  ,  0	}},
 	{ 1 , {"lmbench_all"  ,  "lat_proc"  ,  "-P"  ,  "1"  ,  "shell"  ,  0	}},
 	{ 1 , {"lmbench_all"  ,  "lmdd"  ,  "label=File /var/tmp/XXX write bandwidth:"  ,  "of=/var/tmp/XXX"  ,  "move=1m"  ,  "fsync=1"  ,  "print=3"  ,  0	}},
-	{ 0 , {"lmbench_all"  ,  "lat_pagefault"  ,  "-P"  ,  "1"  ,  "/var/tmp/XXX"  ,  0	}},
 	{ 1 , {"lmbench_all"  ,  "lat_mmap"  ,  "-P"  ,  "1"  ,  "512k"  ,  "/var/tmp/XXX"  ,  0	}},
 	{ 1 , {"busybox"  ,  "echo"  ,  "file"  ,  "system"  ,  "latency"  ,  0	}},
 	{ 1 , {"lmbench_all"  ,  "lat_fs"  ,  "/var/tmp"  ,  0	}},
@@ -48,5 +47,6 @@ static longtest lmbench[] = {
 	{ 1 , {"lmbench_all"  ,  "bw_mmap_rd"  ,  "-P"  ,  "1"  ,  "512k"  ,  "open2close"  ,  "/var/tmp/XXX"  ,  0	}},
 	{ 1 , {"busybox"  ,  "echo"  ,  "context"  ,  "switch"  ,  "overhead"  ,  0	}},
 	{ 1 , {"lmbench_all"  ,  "lat_ctx"  ,  "-P"  ,  "1"  ,  "-s"  ,  "32"  ,  "2"  ,  "4"  ,  "8"  ,  "16"  ,  "24"  ,  "32"  ,  "64"  ,  "96"  ,  0	}},
+	{ 1 , {"lmbench_all"  ,  "lat_pagefault"  ,  "-P"  ,  "1"  ,  "/var/tmp/XXX"  ,  0	}},
 	{ 0 , { 0 , 0				}},
 };
