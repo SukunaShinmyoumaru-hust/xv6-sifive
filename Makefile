@@ -209,7 +209,7 @@ qemu-gdb: $K/kernel .gdbinit
 	@echo "*** Now run 'gdb' in another window." 1>&2
 	$(QEMU) $(QEMUOPTS) -S $(QEMUGDB)
 
-commit?=mytest_change
+commit?=proc_tick
 
 add:
 	git remote add origin https://gitlab.eduxiji.net/Cty/oskernrl2022-rv6.git
@@ -217,7 +217,7 @@ add:
 push:
 	git add .
 	git commit -m  "$(commit)"
-	git push origin switch_test
+	git push origin G
 
 
 

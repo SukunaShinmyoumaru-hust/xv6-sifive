@@ -267,7 +267,7 @@ int devintr(void) {
 	}
 	else if (0x8000000000000005L == scause) {
 		timer_tick();
-                //proc_tick();
+                proc_tick();
 		return 2;
 	}
 	else { return 0;}

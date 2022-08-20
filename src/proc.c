@@ -625,7 +625,46 @@ wakeup(void *chan)
    }
 }
 
-
+void
+proc_tick()
+{
+  uint64 now = r_time();
+  queue tmp;
+  queue_init(&tmp, NULL);
+  acquire(&waitq_pool_lk);
+  for(int i=0;i<WAITQ_NUM ;i++){
+    if(!waitq_valid[i])continue;
+    queue* q = waitq_pool+i;
+    qlock(q);
+    struct list* head = &q->head;
+    struct list* it = list_next(head);
+    while(it!=head){
+      struct proc* p = dlist_entry(it, struct proc, dlist);
+      struct list* nextit = list_next(it);
+      if (p->sleep_expire && now >= p->sleep_expire) {
+        p->sleep_expire = 0;
+        list_del(it);
+        list_add_before(&tmp.head,it);
+      }
+      it = nextit;
+    }
+    if(list_empty(&q->head)){
+      waitq_valid[i]=0;
+    }
+    qunlock(q);
+  }
+  release(&waitq_pool_lk);
+  struct list* head = &tmp.head;
+  struct list* it = list_next(head);
+  while(it!=head){
+      struct proc* p = dlist_entry(it, struct proc, dlist);
+      struct list* nextit = list_next(it);
+      list_del(it);
+      p->state = RUNNABLE;
+      readyq_push(p);
+      it = nextit;
+  }
+}
 
 void
 allocparent(struct proc* parent,struct proc* child){
