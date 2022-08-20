@@ -253,6 +253,7 @@ benchmark_mk(iter_t iterations, void* cookie)
 			fprintf(stderr, "benchmark_mk: null filename at %lu of %lu\n", iterations, state->n);
 			continue;
 		}
+		printf("[benchmark_mk] mkfile %s\n", state->names[iterations]);
 		mkfile(state->names[iterations], state->size);
 	}
 }
