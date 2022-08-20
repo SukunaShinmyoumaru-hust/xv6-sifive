@@ -35,7 +35,7 @@ kvminit()
   // PLIC
   kvmmap(PLIC_V, PLIC, 0x400000, PTE_R | PTE_W);
   #ifdef RAM
-  kvmmap(RAMDISK, RAMDISK, 0x5000000, PTE_R | PTE_W);
+  kvmmap(RAMDISK, RAMDISK, 0x40000000, PTE_R | PTE_W);
   #endif
   #ifdef SD
   // SPI
