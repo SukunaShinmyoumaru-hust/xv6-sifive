@@ -111,7 +111,7 @@ $K/kernel:$K/syscall.c $(OBJS) $(LINKER)
 	@$(OBJDUMP) -S $K/kernel > $K/kernel.asm
 	@$(OBJDUMP) -t $K/kernel | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $K/kernel.sym
 
-binmake:$U/initcode
+binmake:$U/initcode $U/_sacrifice
 	./bin/bin.sh
 
 $K/bin.S:binmake

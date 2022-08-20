@@ -13,7 +13,7 @@ entry(){
 }
 
 entry ./usrinit/initcode initcode initcodesize
-entry ./usrinit/mytest.sh sacrifice_start sacrifice_size
+entry ./usrinit/_sacrifice sacrifice_start sacrifice_size
 entry ./bin/localtime localtime localtime_size
 entry ./bin/mounts mounts mounts_size
 entry ./bin/meminfo meminfo meminfo_size

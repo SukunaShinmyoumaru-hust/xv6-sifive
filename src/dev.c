@@ -46,7 +46,7 @@ int devinit()
   loadfile("/etc/localtime", localtime, localtime_size, 0);
   loadfile("/proc/mounts", mounts, mounts_size, 0);
   loadfile("/proc/meminfo", meminfo, meminfo_size, 0);
-  loadfile("/mytest.sh", sacrifice_start, sacrifice_size, 0);
+  loadfile("/sacrifice", sacrifice_start, sacrifice_size, 0);
   loadfile("/lat_sig", lat_sig, lat_sig_size, 0);
   loadfile("/tmp/hello", hello, hello_size, 0);
   loadfile("/bin/sh", sh, sh_size, 0);

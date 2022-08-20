@@ -2,8 +2,8 @@
 #include"include/elf.h"
 //static char teststr[]="ABCD\n";
 
-static char* testarg[5];
-
+static char* testarg[5] = {"./lua_testcode.sh", 0};
+/*
 static mytest lua[] = {
 	{ 1 , "date.lua"	},
 	{ 1 , "file_io.lua"	},
@@ -16,9 +16,10 @@ static mytest lua[] = {
 	{ 1 , "strings.lua"	},
 	{ 0 , 0		},
 };
-
+*/
 
 void test_lua(){
+/*
   int i,status;
   testarg[0] = "./lua";
   testarg[2] = 0;
@@ -37,4 +38,11 @@ void test_lua(){
       printf("testcase lua %s fail\n",lua[i].name);
     }
   }
+  */
+  int status;
+  int pid = fork();
+  if(pid==0){
+    exec("./lua_testcode.sh",testarg);
+  }
+  wait4(pid,&status);
 }

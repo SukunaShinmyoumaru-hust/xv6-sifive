@@ -1,10 +1,11 @@
 #include "user.h"
 
-static longtest busybox[];
+//static longtest busybox[];
+static char* ttarg[] = {"./busybox_testcode.sh", 0};
 
 void test_busybox(){
+/*
   int i,status;
-//   printf("latency measurements\n");
   for(i = 0; busybox[i].name[1] ; i++){
     if(!busybox[i].valid)continue;
     int pid = fork();
@@ -18,8 +19,15 @@ void test_busybox(){
       printf("testcase busybox %d fail\n",i);
     }
   }
+  */
+  int status;
+  int pid = fork();
+  if(pid==0){
+    exec("./busybox_testcode.sh",ttarg);
+  }
+  wait4(pid,&status);
 }
-
+/*
 static longtest busybox[] = {
 	{ 0 , {"busybox" ,"echo", "#### independent command test" ,  0	}},
 	{ 0 , {"busybox" ,"ash", "-c", "exit" ,  0	}},
@@ -78,3 +86,4 @@ static longtest busybox[] = {
 	{ 0 , {"busybox" ,"find", "-name", "busybox_cmd.txt"  ,0	}},
 	{ 0 , { 0 , 0				}},
 };
+*/
